@@ -1,0 +1,22 @@
+# exemple de base: variables, condition, boucle, fonction
+
+soit nom = "monde"
+affiche "Bonjour" nom
+
+soit age = 20
+
+si age >= 18 alors:
+    affiche "majeur"
+sinon:
+    affiche "mineur"
+
+fonction carre(x):
+    retourne x * x
+
+soit i = 1
+tantque i <= 5 alors:
+    affiche "carre de" i "=" carre(i)
+    i = i + 1
+
+pour compteur de 1 jusqua 3 alors:
+    affiche "tour numero" compteur

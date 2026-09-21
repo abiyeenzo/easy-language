@@ -1,0 +1,39 @@
+# listes / tableaux
+
+soit fruits = ["pomme" "banane" "cerise"]
+affiche fruits
+affiche "premier:" fruits[0]
+affiche "nombre de fruits:" longueur(fruits)
+
+fruits[1] = "mangue"
+affiche fruits
+
+ajoute(fruits "kiwi")
+affiche fruits
+
+soit retire_valeur = retire(fruits 0)
+affiche "retire:" retire_valeur
+affiche fruits
+
+affiche "contient mangue:" contient(fruits "mangue")
+affiche "contient ananas:" contient(fruits "ananas")
+
+pour chaque fruit dans fruits alors:
+    affiche "fruit ->" fruit
+
+soit matrice = [[1 2] [3 4]]
+affiche matrice
+affiche matrice[1][0]
+matrice[0][1] = 99
+affiche matrice
+
+soit vide = []
+si vide alors:
+    affiche "non vide"
+sinon:
+    affiche "liste vide"
+
+soit total = 0
+pour chaque n dans [1 2 3 4 5] alors:
+    total = total + n
+affiche "somme:" total

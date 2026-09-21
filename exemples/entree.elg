@@ -1,0 +1,9 @@
+demande nom "Quel est ton nom : "
+demande age "Quel est ton age : "
+
+affiche "Bonjour" nom "tu as" age "ans"
+
+si age >= 18 alors:
+    affiche "tu es majeur"
+sinon:
+    affiche "tu es mineur"

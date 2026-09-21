@@ -1,0 +1,14 @@
+# demonstration du systeme de modules
+
+importe "modules/mathutils.elg" comme math
+
+affiche "PI =" math.PI
+affiche "carre de 5 =" math.carre(5)
+affiche "cube de 3 =" math.cube(3)
+affiche "10 est pair:" math.est_pair(10)
+affiche "7 est pair:" math.est_pair(7)
+
+soit resultats = []
+pour i de 1 jusqua 5 alors:
+    ajoute(resultats math.carre(i))
+affiche "carres:" resultats
