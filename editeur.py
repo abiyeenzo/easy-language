@@ -3,6 +3,7 @@ import contextlib
 import os
 import queue
 import re
+import sys
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -306,7 +307,18 @@ class Editeur(tk.Tk):
 
 
 def main():
-    Editeur().mainloop()
+    app = Editeur()
+    if len(sys.argv) > 1:
+        chemin = sys.argv[1]
+        if os.path.isfile(chemin):
+            with open(chemin, "r", encoding="utf-8") as f:
+                contenu = f.read()
+            app.texte.delete("1.0", "end")
+            app.texte.insert("1.0", contenu)
+            app.chemin_fichier = chemin
+            app.title(f"Easy Language - Editeur [{chemin}]")
+            app._sur_modification()
+    app.mainloop()
 
 
 if __name__ == "__main__":

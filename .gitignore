@@ -2,5 +2,6 @@ __pycache__/
 *.pyc
 build/
 dist/
-*.spec.bak
+*.spec
+Output/
 .pytest_cache/
