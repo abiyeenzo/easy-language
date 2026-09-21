@@ -92,6 +92,7 @@ class Interpreteur:
         self.dossier_actuel = os.getcwd()
         self.modules_charges = {}
         self.modules_en_cours = set()
+        self.avant_instruction = None
 
     def _installer_fonctions_natives(self):
         def longueur(valeur, ligne):
@@ -158,6 +159,8 @@ class Interpreteur:
             self._executer_instruction(instruction, environnement)
 
     def _executer_instruction(self, instruction, env):
+        if self.avant_instruction is not None:
+            self.avant_instruction(instruction, env)
         methode = getattr(self, f"_exec_{type(instruction).__name__}")
         methode(instruction, env)
 
