@@ -21,6 +21,14 @@ Toutes les versions notables du projet sont documentees ici.
   maintenant ouvert pendant toute l'execution (comme pour le
   debogueur) : l'utilisateur tape sa reponse au moment ou `demande`
   l'attend reellement, puis Entree.
+- Editeur graphique : la coloration syntaxique ne colorait correctement
+  que les mots-cles proches du debut du fichier. `GetWindowTextW`
+  renvoie les sauts de ligne en `\r\n` (2 caracteres) alors que
+  `EM_SETSEL`/`EM_SETCHARFORMAT` comptent chaque saut de paragraphe
+  comme un seul caractere (`\r`) : les positions calculees derivaient
+  d'un caractere par ligne, decalant de plus en plus la coloration des
+  chaines, nombres et commentaires au fil du fichier. Le tampon est
+  desormais compacte (les `\n` retires) avant de calculer les positions.
 
 ## [2.0.0]
 

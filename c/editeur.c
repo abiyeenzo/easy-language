@@ -76,9 +76,22 @@ static void colorer_syntaxe(HWND edit) {
     if (g_en_coloration) return;
     g_en_coloration = TRUE;
 
-    int longueur = GetWindowTextLengthW(edit);
-    wchar_t *texte = malloc(sizeof(wchar_t) * (longueur + 1));
-    GetWindowTextW(edit, texte, longueur + 1);
+    int longueur_brut = GetWindowTextLengthW(edit);
+    wchar_t *brut = malloc(sizeof(wchar_t) * (longueur_brut + 1));
+    GetWindowTextW(edit, brut, longueur_brut + 1);
+
+    /* EM_SETSEL / EM_SETCHARFORMAT comptent chaque saut de paragraphe comme
+       un seul caractere ('\r'), alors que GetWindowTextW renvoie des paires
+       "\r\n". Sans ce compactage, toute position calculee a partir du
+       tampon derive d'une ligne des la deuxieme, et seuls les mots-cles en
+       tout debut de fichier semblent correctement colores. */
+    wchar_t *texte = malloc(sizeof(wchar_t) * (longueur_brut + 1));
+    int longueur = 0;
+    for (int j = 0; j < longueur_brut; j++) {
+        if (brut[j] != L'\n') texte[longueur++] = brut[j];
+    }
+    texte[longueur] = L'\0';
+    free(brut);
 
     DWORD sel_debut, sel_fin;
     SendMessageW(edit, EM_GETSEL, (WPARAM)&sel_debut, (LPARAM)&sel_fin);
@@ -92,14 +105,14 @@ static void colorer_syntaxe(HWND edit) {
 
         if (c == L'#') {
             int debut = i;
-            while (i < longueur && texte[i] != L'\n') i++;
+            while (i < longueur && texte[i] != L'\r') i++;
             definir_couleur(edit, debut, i, RGB(106, 153, 85));
             continue;
         }
         if (c == L'"') {
             int debut = i;
             i++;
-            while (i < longueur && texte[i] != L'"' && texte[i] != L'\n') i++;
+            while (i < longueur && texte[i] != L'"' && texte[i] != L'\r') i++;
             if (i < longueur && texte[i] == L'"') i++;
             definir_couleur(edit, debut, i, RGB(206, 145, 120));
             continue;
