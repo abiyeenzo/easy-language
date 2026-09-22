@@ -48,10 +48,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: easy-language-windows
-          path: EasyLanguage-windows.zip
+          path: |
+            EasyLanguage-windows.zip
+            c/easy_language.exe
+            c/easy_debogueur.exe
+            c/easy_editeur.exe
 
       - name: Creer la release GitHub (uniquement sur un tag v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: EasyLanguage-windows.zip
+          files: |
+            EasyLanguage-windows.zip
+            c/easy_language.exe
+            c/easy_debogueur.exe
+            c/easy_editeur.exe
