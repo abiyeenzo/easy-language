@@ -26,6 +26,8 @@
 #include <string.h>
 #include <wctype.h>
 
+#include "ressources.h"
+
 #define ID_EDITEUR 101
 #define ID_SORTIE 102
 #define ID_ENTREE_COMMANDE 104
@@ -561,6 +563,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
 
     LoadLibraryW(L"Msftedit.dll");
 
+    HICON icone = LoadIconW(instance, MAKEINTRESOURCEW(IDI_ICONE));
+
     WNDCLASSW wc;
     memset(&wc, 0, sizeof(wc));
     wc.lpfnWndProc = FenetrePrincipaleProc;
@@ -568,11 +572,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
     wc.lpszClassName = L"EasyLanguageEditeur";
     wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+    wc.hIcon = icone;
     RegisterClassW(&wc);
 
     g_fenetre = CreateWindowExW(0, L"EasyLanguageEditeur", L"Easy Language",
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 950, 700,
         NULL, NULL, instance, NULL);
+
+    if (icone) {
+        SendMessageW(g_fenetre, WM_SETICON, ICON_BIG, (LPARAM)icone);
+        SendMessageW(g_fenetre, WM_SETICON, ICON_SMALL, (LPARAM)icone);
+    }
 
     ShowWindow(g_fenetre, mode_affichage);
     UpdateWindow(g_fenetre);

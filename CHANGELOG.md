@@ -11,6 +11,13 @@ Toutes les versions notables du projet sont documentees ici.
 - Virgule optionnelle comme separateur dans les litteraux de liste, les
   arguments d'appel de fonction et les parametres de definition de
   fonction (`[1, 2, 3]`, `fonction f(a, b):`, `f(1, 2)`).
+- Logo du langage (`packaging/icone.ico`), embarque dans les trois `.exe`
+  via une ressource Windows (`c/ressources.rc`) : visible dans
+  l'Explorateur, la barre des taches et la barre de titre de l'editeur.
+  Script `packaging/associer_fichiers.ps1` (+ wrapper `.bat` a
+  double-cliquer) pour associer l'extension `.elg` a ce logo et a
+  l'editeur, sans droit administrateur. Logo egalement ajoute en favicon
+  et en-tete de `site/index.html`.
 
 ### Corrige
 - Editeur graphique : le champ d'entree standard etait un buffer a

@@ -14,6 +14,15 @@ portent l'extension `.elg`.
 Le raccourci **Easy Language - Editeur** (Bureau ou menu Demarrer) ouvre
 l'editeur. C'est par la qu'on commence.
 
+## Avoir le logo sur vos fichiers .elg (optionnel)
+
+Dans le dossier telecharge, double-cliquez sur **`associer_fichiers.bat`**.
+Une fenetre s'ouvre brievement puis se ferme : vos fichiers `.elg`
+affichent desormais le logo Easy Language dans l'Explorateur, et s'ouvrent
+directement dans l'editeur en double-cliquant dessus. Aucune installation
+ni droit administrateur necessaire ; ca ne change rien en dehors de votre
+compte Windows.
+
 ## Ecrire et lancer votre premier script
 
 1. Ouvrez l'editeur.
