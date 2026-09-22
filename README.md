@@ -22,11 +22,10 @@ python debogueur_cli.py programme.elg [lignes_arret...]   # debogueur en ligne d
 
 ## Site
 
-`site/index.html` est le site de presentation + telechargement (voir
+`site/index.html` est le site de presentation + telechargement (liens
+vers `github.com/abiyeenzo/easy-language`). Voir
 `.github/workflows/pages.yml` pour le publier automatiquement via GitHub
-Pages). **Avant de le publier**, remplacez `TON-COMPTE/easy-language` par
-votre depot GitHub reel dans `site/index.html` (liens de telechargement et
-lien "code source").
+Pages une fois le depot pousse.
 
 ## Syntaxe
 
