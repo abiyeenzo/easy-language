@@ -13,6 +13,21 @@ délimités par indentation (comme en Python), après un `:`.
 python main.py exemples/bonjour.elg
 ```
 
+## Editeur et debogueur
+
+```
+python editeur.py                    # editeur graphique (coloration syntaxique, F5 = lancer, F6 = deboguer)
+python debogueur_cli.py programme.elg [lignes_arret...]   # debogueur en ligne de commande
+```
+
+## Site
+
+`site/index.html` est le site de presentation + telechargement (voir
+`.github/workflows/pages.yml` pour le publier automatiquement via GitHub
+Pages). **Avant de le publier**, remplacez `TON-COMPTE/easy-language` par
+votre depot GitHub reel dans `site/index.html` (liens de telechargement et
+lien "code source").
+
 ## Syntaxe
 
 ### Variables

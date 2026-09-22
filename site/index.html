@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Easy Language</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --ink:#14151c;
+    --panel:#1c1e29;
+    --panel-2:#242637;
+    --line:#33364a;
+    --text:#eef0f6;
+    --muted:#989db3;
+    --amber:#e7a63c;
+    --amber-ink:#2a1f0d;
+    --teal:#5fd0c0;
+    --mot-cle:#c586c0;
+    --chaine:#ce9178;
+    --nombre:#b5cea8;
+    --commentaire:#7fae6d;
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--ink);}
+  body{
+    margin:0;
+    padding-inline:16px;
+    color:var(--text);
+    font-family:"Manrope",-apple-system,Segoe UI,sans-serif;
+    background:var(--ink);
+    line-height:1.55;
+  }
+  h1,h2,h3{font-family:"Fraunces","Manrope",serif;font-weight:600;text-wrap:balance;margin:0;}
+  code,.mono{font-family:"JetBrains Mono",ui-monospace,monospace;}
+  a{color:var(--teal);text-decoration:none;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  .muted{color:var(--muted);}
+
+  /* --- nav --- */
+  nav{
+    position:sticky;top:env(safe-area-inset-top,0px);
+    display:flex;align-items:center;gap:20px;
+    padding-block:16px;
+    background:color-mix(in srgb, var(--ink) 88%, transparent);
+    backdrop-filter:blur(8px);
+    z-index:10;
+    flex-wrap:wrap;
+  }
+  .logo{display:flex;align-items:center;gap:10px;font-family:"Fraunces",serif;font-weight:600;font-size:1.15rem;}
+  .logo .point{color:var(--amber);}
+  .navlinks{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap;}
+  .navlinks a{color:var(--muted);font-size:.95rem;}
+  .navlinks a:hover{color:var(--text);}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 20px;border-radius:8px;
+    font-weight:600;font-size:.95rem;
+    border:1px solid transparent;
+    cursor:pointer;
+  }
+  .btn-amber{background:var(--amber);color:var(--amber-ink);}
+  .btn-amber:hover{background:#f0b453;}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--text);}
+  .btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+
+  /* --- hero --- */
+  .hero{
+    display:grid;grid-template-columns:1.05fr .95fr;gap:48px;
+    align-items:center;
+    padding-block:56px 40px;
+  }
+  @media (max-width:760px){ .hero{grid-template-columns:1fr;} }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    color:var(--amber);font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;
+    font-weight:700;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);}
+  h1{font-size:clamp(2.2rem,5vw,3.4rem);line-height:1.05;}
+  h1 .accent{color:var(--amber);}
+  .lede{color:var(--muted);font-size:1.08rem;max-width:34ch;margin-block:18px 26px;}
+  .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;}
+  .ext-hint{margin-top:14px;font-size:.85rem;}
+  .ext-hint code{background:var(--panel-2);padding:2px 7px;border-radius:5px;color:var(--teal);}
+
+  .codecard{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;box-shadow:0 24px 60px -30px rgba(0,0,0,.7);
+  }
+  .codecard .bar{
+    display:flex;align-items:center;gap:8px;padding:10px 14px;
+    background:var(--panel-2);border-bottom:1px solid var(--line);
+  }
+  .bar .dot{width:10px;height:10px;border-radius:50%;}
+  .bar .r{background:#e5645b;} .bar .y{background:#e7b93e;} .bar .g{background:#4fc26b;}
+  .bar .fname{margin-left:10px;color:var(--muted);font-size:.8rem;}
+  pre.code{margin:0;padding:18px 20px;font-size:.86rem;overflow-x:auto;}
+  pre.code, pre.code code{font-family:"JetBrains Mono",ui-monospace,monospace;}
+  .mc{color:var(--mot-cle);} .ch{color:var(--chaine);} .no{color:var(--nombre);} .co{color:var(--commentaire);}
+
+  /* --- section shell --- */
+  section{padding-block:52px;}
+  .section-head{margin-bottom:32px;max-width:56ch;}
+  .section-head .eyebrow{margin-bottom:10px;}
+  h2{font-size:clamp(1.6rem,3.2vw,2.2rem);}
+
+  /* --- features --- */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media (max-width:760px){ .grid3{grid-template-columns:1fr;} }
+  .feature{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:22px;
+  }
+  .feature svg{color:var(--teal);margin-bottom:12px;}
+  .feature h3{font-size:1.05rem;margin-bottom:8px;}
+  .feature p{color:var(--muted);font-size:.92rem;margin:0;}
+
+  /* --- docs tabs --- */
+  .doctabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .doctab{
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    padding:9px 16px;border-radius:100px;font-size:.88rem;cursor:pointer;font-weight:600;
+  }
+  .doctab.active{background:var(--amber);color:var(--amber-ink);border-color:var(--amber);}
+  .docpanel{display:none;}
+  .docpanel.active{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+  @media (max-width:760px){ .docpanel.active{grid-template-columns:1fr;} }
+  .docpanel h3{font-size:1.15rem;margin-bottom:10px;}
+  .docpanel p{color:var(--muted);font-size:.94rem;}
+  .docpanel ul{color:var(--muted);font-size:.92rem;padding-left:18px;}
+  .docpanel li{margin-block:4px;}
+
+  /* --- download --- */
+  .grid3.dl{align-items:stretch;}
+  .dlcard{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:24px;display:flex;flex-direction:column;gap:14px;
+  }
+  .dlcard.reco{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
+  .dlcard .tag{
+    align-self:flex-start;font-size:.72rem;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--amber-ink);background:var(--amber);
+    padding:3px 9px;border-radius:100px;
+  }
+  .dlcard h3{font-size:1.1rem;}
+  .dlcard p{color:var(--muted);font-size:.9rem;margin:0;flex:1;}
+  .dlcard .size{color:var(--muted);font-size:.78rem;}
+
+  footer{
+    border-top:1px solid var(--line);padding-block:32px calc(28px + env(safe-area-inset-bottom,0px));
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;
+    color:var(--muted);font-size:.85rem;
+  }
+  footer a{color:var(--muted);}
+  footer a:hover{color:var(--teal);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="logo"><span>easy_language<span class="point">.elg</span></span></div>
+    <div class="navlinks">
+      <a href="#fonctionnalites">Fonctionnalites</a>
+      <a href="#documentation">Documentation</a>
+      <a href="#telecharger">Telecharger</a>
+      <a href="https://github.com/TON-COMPTE/easy-language" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <a class="btn btn-amber" href="#telecharger">Telecharger</a>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Langage interprete &middot; fichiers .elg</div>
+      <h1>Programmer en <span class="accent">francais</span>,<br>sans virgule, sans point-virgule.</h1>
+      <p class="lede">Easy Language est un langage de programmation interprete en Python : mots-cles francais, blocs par indentation, listes, modules, et un debogueur pas-a-pas integre.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-amber" href="#telecharger">Telecharger pour Windows</a>
+        <a class="btn btn-ghost" href="#documentation">Voir la documentation</a>
+      </div>
+      <div class="ext-hint muted">Vos scripts se terminent en <code>.elg</code></div>
+    </div>
+
+    <div class="codecard">
+      <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="fname">bonjour.elg</span></div>
+      <pre class="code"><code><span class="co"># exemple de base</span>
+<span class="mc">soit</span> nom = <span class="ch">"monde"</span>
+<span class="mc">affiche</span> <span class="ch">"Bonjour"</span> nom
+
+<span class="mc">fonction</span> carre(x):
+    <span class="mc">retourne</span> x * x
+
+<span class="mc">pour</span> i <span class="mc">de</span> 1 <span class="mc">jusqua</span> 5 <span class="mc">alors</span>:
+    <span class="mc">affiche</span> <span class="ch">"carre de"</span> i <span class="ch">"="</span> carre(i)</code></pre>
+    </div>
+  </div>
+
+  <section id="fonctionnalites">
+    <div class="section-head">
+      <div class="eyebrow">Fonctionnalites</div>
+      <h2>Tout ce qu'il faut pour ecrire, tester et deboguer un script</h2>
+    </div>
+    <div class="grid3">
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>
+        <h3>Syntaxe francaise</h3>
+        <p>soit, si, sinon, tantque, pour, fonction, retourne... aucune accolade, aucune virgule, aucun point-virgule.</p>
+      </div>
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></svg>
+        <h3>Listes et modules</h3>
+        <p>Tableaux avec [1 2 3], indexation, et importe "fichier.elg" comme module pour partager du code.</p>
+      </div>
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3"/></svg>
+        <h3>Debogueur integre</h3>
+        <p>Points d'arret, execution pas-a-pas, inspection des variables en cours d'execution, en ligne de commande ou dans l'editeur.</p>
+      </div>
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16"/><path d="M6 15l4-4 3 3 5-6"/></svg>
+        <h3>Editeur avec coloration</h3>
+        <p>Application de bureau (tkinter) : coloration syntaxique, execution en un clic, console de sortie et session de debogage interactive.</p>
+      </div>
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        <h3>102 tests unitaires</h3>
+        <p>Lexer, analyseur, interpreteur, modules et debogueur sont couverts par une suite de tests (stdlib, zero dependance).</p>
+      </div>
+      <div class="feature">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M8 4v14"/></svg>
+        <h3>Aucune dependance</h3>
+        <p>L'interpreteur ne repose que sur la bibliotheque standard Python : meme comportement sous Windows, Linux et macOS.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="documentation">
+    <div class="section-head">
+      <div class="eyebrow">Documentation</div>
+      <h2>Reference rapide de la syntaxe</h2>
+    </div>
+
+    <div class="doctabs" role="tablist">
+      <button class="doctab active" data-tab="variables">Variables</button>
+      <button class="doctab" data-tab="controle">Conditions &amp; boucles</button>
+      <button class="doctab" data-tab="fonctions">Fonctions</button>
+      <button class="doctab" data-tab="listes">Listes</button>
+      <button class="doctab" data-tab="modules">Modules</button>
+    </div>
+
+    <div class="docpanel active" data-panel="variables">
+      <pre class="code"><code><span class="mc">soit</span> x = 5
+<span class="mc">soit</span> nom = <span class="ch">"Alice"</span>
+x = x + 1
+<span class="mc">affiche</span> <span class="ch">"x ="</span> x
+<span class="mc">demande</span> age <span class="ch">"Ton age : "</span></code></pre>
+      <div>
+        <h3>Variables et affichage</h3>
+        <p><code>soit</code> declare une variable ; une reaffectation se fait sans <code>soit</code>. <code>affiche</code> accepte plusieurs valeurs separees par des espaces. <code>demande</code> lit une entree et convertit automatiquement en nombre si possible.</p>
+        <ul>
+          <li>Types : nombres, texte, <code>vrai</code> / <code>faux</code>, <code>rien</code></li>
+          <li>Operateurs : <code>+ - * / %</code>, <code>== != &lt; &gt; &lt;= &gt;=</code>, <code>et ou non</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="docpanel" data-panel="controle">
+      <pre class="code"><code><span class="mc">si</span> age &gt;= 18 <span class="mc">alors</span>:
+    <span class="mc">affiche</span> <span class="ch">"majeur"</span>
+<span class="mc">sinon</span>:
+    <span class="mc">affiche</span> <span class="ch">"mineur"</span>
+
+<span class="mc">pour</span> i <span class="mc">de</span> 10 <span class="mc">jusqua</span> 0 <span class="mc">pas</span> -2 <span class="mc">alors</span>:
+    <span class="mc">affiche</span> i</code></pre>
+      <div>
+        <h3>Conditions et boucles</h3>
+        <p>Blocs delimites par indentation apres <code>:</code>, comme en Python. <code>si / sinon si / sinon</code>, <code>tantque</code>, et <code>pour ... de ... jusqua ... pas</code>. <code>arrete</code> et <code>continue</code> controlent les boucles.</p>
+      </div>
+    </div>
+
+    <div class="docpanel" data-panel="fonctions">
+      <pre class="code"><code><span class="mc">fonction</span> fibonacci(n):
+    <span class="mc">si</span> n &lt;= 1 <span class="mc">alors</span>:
+        <span class="mc">retourne</span> n
+    <span class="mc">retourne</span> fibonacci(n - 1) + fibonacci(n - 2)
+
+<span class="mc">affiche</span> fibonacci(10)</code></pre>
+      <div>
+        <h3>Fonctions</h3>
+        <p>Les arguments multiples sont separes par des espaces, jamais des virgules : <code>addition(1 2 3)</code>. La recursion et les portees locales fonctionnent normalement.</p>
+      </div>
+    </div>
+
+    <div class="docpanel" data-panel="listes">
+      <pre class="code"><code><span class="mc">soit</span> fruits = [<span class="ch">"pomme"</span> <span class="ch">"banane"</span>]
+ajoute(fruits <span class="ch">"kiwi"</span>)
+<span class="mc">affiche</span> fruits[0]
+
+<span class="mc">pour</span> <span class="mc">chaque</span> f <span class="mc">dans</span> fruits <span class="mc">alors</span>:
+    <span class="mc">affiche</span> f</code></pre>
+      <div>
+        <h3>Listes / tableaux</h3>
+        <p>Elements separes par des espaces entre crochets. Indexation en lecture et en ecriture, imbrication, et les natives <code>ajoute</code>, <code>retire</code>, <code>contient</code>, <code>longueur</code>.</p>
+      </div>
+    </div>
+
+    <div class="docpanel" data-panel="modules">
+      <pre class="code"><code><span class="mc">importe</span> <span class="ch">"modules/mathutils.elg"</span> <span class="mc">comme</span> math
+
+<span class="mc">affiche</span> math.PI
+<span class="mc">affiche</span> math.carre(5)</code></pre>
+      <div>
+        <h3>Modules</h3>
+        <p>Chaque fichier <code>.elg</code> peut etre importe comme espace de noms. Le chemin est relatif au fichier qui importe ; un import circulaire est detecte proprement.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="telecharger">
+    <div class="section-head">
+      <div class="eyebrow">Telecharger</div>
+      <h2>Pret a l'emploi sous Windows</h2>
+      <p class="muted">Trois telechargements, generes automatiquement depuis le code source par GitHub Actions.</p>
+    </div>
+
+    <div class="grid3 dl">
+      <div class="dlcard reco">
+        <span class="tag">Recommande</span>
+        <h3>Installateur complet</h3>
+        <p>Installe l'interpreteur et l'editeur, cree les raccourcis et associe les fichiers .elg. Le plus simple pour demarrer.</p>
+        <span class="size mono">EasyLanguageSetup.exe</span>
+        <a class="btn btn-amber" href="https://github.com/TON-COMPTE/easy-language/releases/latest/download/EasyLanguageSetup.exe">Telecharger</a>
+      </div>
+      <div class="dlcard">
+        <span class="tag" style="background:var(--panel-2);color:var(--muted);">Ligne de commande</span>
+        <h3>Interpreteur seul</h3>
+        <p>Un seul executable pour lancer des scripts .elg depuis un terminal, sans installation.</p>
+        <span class="size mono">easy_language.exe</span>
+        <a class="btn btn-ghost" href="https://github.com/TON-COMPTE/easy-language/releases/latest/download/easy_language.exe">Telecharger</a>
+      </div>
+      <div class="dlcard">
+        <span class="tag" style="background:var(--panel-2);color:var(--muted);">Editeur</span>
+        <h3>Editeur seul</h3>
+        <p>L'application graphique avec coloration syntaxique et debogueur, sans l'installateur.</p>
+        <span class="size mono">easy_language_editeur.exe</span>
+        <a class="btn btn-ghost" href="https://github.com/TON-COMPTE/easy-language/releases/latest/download/easy_language_editeur.exe">Telecharger</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Easy Language &middot; projet realise pour un defi de programmation.</div>
+    <div><a href="https://github.com/TON-COMPTE/easy-language" target="_blank" rel="noopener">Code source sur GitHub</a></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var tabs = document.querySelectorAll(".doctab");
+  var panels = document.querySelectorAll(".docpanel");
+  tabs.forEach(function(tab){
+    tab.addEventListener("click", function(){
+      tabs.forEach(function(t){ t.classList.remove("active"); });
+      panels.forEach(function(p){ p.classList.remove("active"); });
+      tab.classList.add("active");
+      var target = document.querySelector('.docpanel[data-panel="' + tab.dataset.tab + '"]');
+      if (target) target.classList.add("active");
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
