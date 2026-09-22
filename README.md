@@ -1,7 +1,7 @@
 # Easy Language
 
 Un langage de programmation interprété en français, avec des fichiers `.elg`.
-Interpréteur écrit en Python pur (aucune dépendance externe) — fonctionne
+Interpréteur écrit en Python pur (aucune dépendance externe), qui fonctionne
 à l'identique sous Linux, macOS et Windows.
 
 Ce README est pour les développeurs. Pour un guide simple destiné aux

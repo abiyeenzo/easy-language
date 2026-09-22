@@ -1,4 +1,4 @@
-# Easy Language — Guide de l'utilisateur
+# Guide de l'utilisateur Easy Language
 
 Bienvenue ! Ce guide explique comment utiliser Easy Language sans avoir
 besoin de connaissances techniques particulieres.
@@ -77,7 +77,7 @@ affiche outils.uneFonction()
 ```
 
 Pas de virgule, pas de point-virgule, pas d'accolade : les blocs sont
-delimites par l'indentation, apres `:` — comme en Python.
+delimites par l'indentation, apres `:`, comme en Python.
 
 ## Des exemples tout prets
 
