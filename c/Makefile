@@ -6,7 +6,7 @@ SRC_COMMUNS = lexer.c analyseur.c valeur.c environnement.c interpreteur.c util.c
 
 WINCC = x86_64-w64-mingw32-gcc
 
-.PHONY: all clean windows linux
+.PHONY: all clean windows linux tests
 
 all: linux
 
@@ -30,5 +30,10 @@ easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS)
 easy_editeur.exe: editeur.c
 	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ $^ -lcomdlg32 -lgdi32 -luser32 -lkernel32
 
+tests: easy_language easy_debogueur
+	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/aide.c
+	cd tests && ./executer_tests
+
 clean:
 	rm -f easy_language easy_language.exe easy_debogueur easy_debogueur.exe easy_editeur.exe *.o
+	rm -f tests/executer_tests

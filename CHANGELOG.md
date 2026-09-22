@@ -17,12 +17,12 @@ conservee dans le rendu).
   Lancer/Deboguer).
 - Packaging simplifie : cross-compilation directe vers `.exe` Windows
   via `mingw-w64`, sans runner Windows ni PyInstaller.
+- Nouvelle suite de tests en C (`c/tests/`, 81 verifications) qui pilote
+  les executables compiles comme boite noire, remplace l'ancienne suite
+  `unittest` Python.
 
 ### Retire
 - Systeme de modules (`importe ... comme ...`) : pas encore porte en C.
-- Suite de tests `unittest` (Python) : la couverture s'appuie pour
-  l'instant sur des tests manuels et une comparaison de sortie avec
-  l'ancienne reference Python (retiree du depot).
 
 ## [1.0.0]
 

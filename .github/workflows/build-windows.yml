@@ -22,6 +22,9 @@ jobs:
       - name: Compiler l'interpreteur natif (verification rapide)
         run: cd c && make linux
 
+      - name: Lancer la suite de tests
+        run: cd c && make tests
+
       - name: Verifier les exemples (sortie non vide, code de sortie 0)
         run: |
           cd c

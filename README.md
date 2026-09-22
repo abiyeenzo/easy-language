@@ -23,6 +23,19 @@ make windows   # + easy_editeur.exe, via cross-compilation mingw-w64
 Voir [`packaging/README.md`](packaging/README.md) pour la CI et le detail
 de la cross-compilation.
 
+## Tests
+
+```
+cd c
+make tests
+```
+
+Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
+binaire `easy_language`/`easy_debogueur` compile comme boite noire (le
+plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
+81 verifications : variables, boucles, fonctions, listes, erreurs, entree
+standard, debogueur.
+
 ## Utilisation
 
 ```
