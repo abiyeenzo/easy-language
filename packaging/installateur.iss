@@ -5,7 +5,7 @@
 ; relatif au repertoire courant d'ISCC (la racine du depot).
 
 #define MyAppName "Easy Language"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Easy Language"
 
 [Setup]
@@ -30,11 +30,14 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 [Files]
 Source: "dist\easy_language.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\easy_language_editeur.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "GUIDE_UTILISATEUR.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "exemples\*"; DestDir: "{app}\exemples"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Easy Language - Editeur"; Filename: "{app}\easy_language_editeur.exe"
+Name: "{group}\Guide de l'utilisateur"; Filename: "{app}\GUIDE_UTILISATEUR.md"
 Name: "{group}\Exemples"; Filename: "{app}\exemples"
 Name: "{group}\Desinstaller {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Easy Language"; Filename: "{app}\easy_language_editeur.exe"; Tasks: raccourcibureau

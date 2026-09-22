@@ -4,6 +4,14 @@ Un langage de programmation interprété en français, avec des fichiers `.elg`.
 Interpréteur écrit en Python pur (aucune dépendance externe) — fonctionne
 à l'identique sous Linux, macOS et Windows.
 
+Ce README est pour les développeurs. Pour un guide simple destiné aux
+utilisateurs de l'éditeur/interpréteur installé, voir
+[`GUIDE_UTILISATEUR.md`](GUIDE_UTILISATEUR.md). Historique des versions :
+[`CHANGELOG.md`](CHANGELOG.md).
+
+Version actuelle : `easy_language/version.py` (`--version` en ligne de
+commande, menu *Aide > A propos* dans l'éditeur).
+
 Pas de point-virgule, pas de virgule, pas d'accolade : les blocs sont
 délimités par indentation (comme en Python), après un `:`.
 

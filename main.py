@@ -5,6 +5,7 @@ from easy_language.lexer import Lexer
 from easy_language.analyseur import Analyseur
 from easy_language.interpreteur import Interpreteur
 from easy_language.erreurs import ErreurEasyLang
+from easy_language.version import VERSION
 
 
 def executer_fichier(chemin):
@@ -32,8 +33,12 @@ def executer_fichier(chemin):
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] in ("--version", "-v"):
+        print(f"Easy Language {VERSION}")
+        return
     if len(sys.argv) != 2:
         print("Usage: python main.py <fichier.elg>", file=sys.stderr)
+        print("       python main.py --version", file=sys.stderr)
         sys.exit(1)
     executer_fichier(sys.argv[1])
 

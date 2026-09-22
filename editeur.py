@@ -13,6 +13,7 @@ from easy_language.debogueur import ArretDebogueur, Debogueur
 from easy_language.erreurs import ErreurEasyLang
 from easy_language.interpreteur import Interpreteur
 from easy_language.lexer import MOTS_CLES, Lexer
+from easy_language.version import VERSION
 
 MOTIF_MOT_CLE = r"\b(" + "|".join(sorted(MOTS_CLES, key=len, reverse=True)) + r")\b"
 MOTIF_CHAINE = r'"([^"\\]|\\.)*"'
@@ -45,7 +46,8 @@ class FluxSortie:
 class Editeur(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Easy Language - Editeur [Nouveau fichier]")
+        self.titre_base = f"Easy Language {VERSION} - Editeur"
+        self.title(f"{self.titre_base} [Nouveau fichier]")
         self.geometry("950x680")
 
         self.chemin_fichier = None
@@ -74,6 +76,10 @@ class Editeur(tk.Tk):
         menu_executer.add_command(label="Lancer", command=self.lancer, accelerator="F5")
         menu_executer.add_command(label="Deboguer", command=self.deboguer, accelerator="F6")
         barre.add_cascade(label="Executer", menu=menu_executer)
+
+        menu_aide = tk.Menu(barre, tearoff=0)
+        menu_aide.add_command(label="A propos", command=self.a_propos)
+        barre.add_cascade(label="Aide", menu=menu_aide)
 
         self.config(menu=barre)
 
@@ -169,7 +175,7 @@ class Editeur(tk.Tk):
     def nouveau(self):
         self.texte.delete("1.0", "end")
         self.chemin_fichier = None
-        self.title("Easy Language - Editeur [Nouveau fichier]")
+        self.title(f"{self.titre_base} [Nouveau fichier]")
         self._sur_modification()
 
     def ouvrir(self):
@@ -181,7 +187,7 @@ class Editeur(tk.Tk):
         self.texte.delete("1.0", "end")
         self.texte.insert("1.0", contenu)
         self.chemin_fichier = chemin
-        self.title(f"Easy Language - Editeur [{chemin}]")
+        self.title(f"{self.titre_base} [{chemin}]")
         self._sur_modification()
 
     def enregistrer(self):
@@ -196,7 +202,7 @@ class Editeur(tk.Tk):
         if not chemin:
             return False
         self.chemin_fichier = chemin
-        self.title(f"Easy Language - Editeur [{chemin}]")
+        self.title(f"{self.titre_base} [{chemin}]")
         return self.enregistrer()
 
     # --- execution et debogage ---
@@ -305,6 +311,15 @@ class Editeur(tk.Tk):
         self.sortie.delete("1.0", "end")
         self.sortie.configure(state="disabled")
 
+    def a_propos(self):
+        messagebox.showinfo(
+            "A propos",
+            f"Easy Language {VERSION}\n\n"
+            "Langage de programmation interprete en francais.\n"
+            "Fichiers .elg\n\n"
+            "https://github.com/abiyeenzo/easy-language",
+        )
+
 
 def main():
     app = Editeur()
@@ -316,7 +331,7 @@ def main():
             app.texte.delete("1.0", "end")
             app.texte.insert("1.0", contenu)
             app.chemin_fichier = chemin
-            app.title(f"Easy Language - Editeur [{chemin}]")
+            app.title(f"{app.titre_base} [{chemin}]")
             app._sur_modification()
     app.mainloop()
 
