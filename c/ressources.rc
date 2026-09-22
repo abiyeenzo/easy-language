@@ -1,3 +1,0 @@
-#include "ressources.h"
-
-IDI_ICONE ICON "../packaging/icone.ico"

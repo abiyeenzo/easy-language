@@ -206,4 +206,11 @@ Aucune dépendance à installer sur la machine cible : les trois `.exe`
 (`easy_language.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
 dépendent que de DLL systeme presentes par defaut sur Windows
 (`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`). Voir
-[`packaging/README.md`](packaging/README.md) pour la compilation.
+[`packaging/README.md`](packaging/README.md) pour la compilation, et
+[`packaging/installateur.iss`](packaging/installateur.iss) pour
+l'installateur (menu Demarrer, association `.elg`, ajout au `PATH`).
+
+## Licence
+
+Tous droits reserves © 2026 Abiye Enzo / AE Corporation. Voir
+[`LICENSE`](LICENSE).
