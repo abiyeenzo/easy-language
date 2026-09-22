@@ -18,7 +18,8 @@ easy_language: main.c $(SRC_COMMUNS)
 easy_debogueur: debogueur_main.c debogueur.c $(SRC_COMMUNS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-windows: easy_language.exe easy_debogueur.exe
+# L'editeur utilise l'API Win32 directement: uniquement compilable pour Windows.
+windows: easy_language.exe easy_debogueur.exe easy_editeur.exe
 
 easy_language.exe: main.c $(SRC_COMMUNS)
 	$(WINCC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -26,5 +27,8 @@ easy_language.exe: main.c $(SRC_COMMUNS)
 easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS)
 	$(WINCC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+easy_editeur.exe: editeur.c
+	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ $^ -lcomdlg32 -lgdi32 -luser32 -lkernel32
+
 clean:
-	rm -f easy_language easy_language.exe easy_debogueur easy_debogueur.exe *.o
+	rm -f easy_language easy_language.exe easy_debogueur easy_debogueur.exe easy_editeur.exe *.o
