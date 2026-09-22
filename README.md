@@ -58,6 +58,11 @@ lancer `easy_language.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
 déboguer. Il ne se compile que pour Windows et doit rester dans le même
 dossier que les deux autres `.exe`.
 
+Les trois `.exe` embarquent le logo du langage (`packaging/icone.ico`,
+compilé via `c/ressources.rc`). Le script `packaging/associer_fichiers.ps1`
+(ou son wrapper `.bat`, à double-cliquer) associe l'extension `.elg` à ce
+logo et à l'éditeur pour l'utilisateur courant, sans droit administrateur.
+
 ## Site
 
 `site/index.html` est le site de presentation + telechargement (liens

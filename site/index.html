@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Easy Language</title>
+<link rel="icon" type="image/png" href="assets/logo.png">
 <style>
   body {
     max-width: 760px;
@@ -73,6 +74,17 @@
     color: #777;
     font-size: 0.85rem;
   }
+  .entete {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .entete img {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+  }
+  .entete h1 { margin: 0; }
 </style>
 </head>
 <body>
@@ -84,8 +96,11 @@
   <a href="https://github.com/abiyeenzo/easy-language">GitHub</a>
 </div>
 
-<h1>Easy Language</h1>
-<p class="tagline">Un langage de programmation interprete en C, avec des mots-cles en francais. Pas de point-virgule, pas de virgule, pas d'accolade : les blocs sont indentes, comme en Python.</p>
+<div class="entete">
+  <img src="assets/logo.png" alt="Logo Easy Language" width="64" height="64">
+  <h1>Easy Language</h1>
+</div>
+<p class="tagline">Un langage de programmation interprete en C, avec des mots-cles en francais. Pas de point-virgule, pas d'accolade : les blocs sont indentes, comme en Python.</p>
 
 <pre><code><span class="com"># exemple : exemples/bonjour.elg</span>
 <span class="kw">soit</span> nom = <span class="str">"monde"</span>
