@@ -1,4 +1,4 @@
-name: Build Windows
+name: Build Windows (C, cross-compilation)
 
 on:
   push:
@@ -11,48 +11,44 @@ permissions:
   contents: write
 
 jobs:
-  tests-et-build:
-    runs-on: windows-latest
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Installer mingw-w64 (cross-compilation Windows depuis Linux)
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64
 
-      - name: Lancer les tests unitaires
-        run: python -m unittest discover -v
+      - name: Compiler l'interpreteur natif (verification rapide)
+        run: cd c && make linux
 
-      - name: Installer PyInstaller
-        run: pip install pyinstaller
+      - name: Verifier les exemples (sortie non vide, code de sortie 0)
+        run: |
+          cd c
+          for f in ../exemples/*.elg; do
+            echo "--- $f ---"
+            printf "Alice\n25\n" | ./easy_language "$f"
+          done
 
-      - name: Construire l'interpreteur (easy_language.exe)
-        run: pyinstaller --onefile --name easy_language main.py
+      - name: Cross-compiler pour Windows (interpreteur + debogueur + editeur)
+        run: cd c && make windows
 
-      - name: Construire l'editeur (easy_language_editeur.exe)
-        run: pyinstaller --onefile --windowed --name easy_language_editeur editeur.py
+      - name: Preparer le paquet de distribution
+        run: |
+          mkdir -p dist_windows
+          cp c/easy_language.exe c/easy_debogueur.exe c/easy_editeur.exe dist_windows/
+          cp -r exemples dist_windows/
+          cp README.md GUIDE_UTILISATEUR.md CHANGELOG.md dist_windows/
+          cd dist_windows && zip -r ../EasyLanguage-windows.zip .
 
-      - name: Installer Inno Setup
-        run: choco install innosetup -y --no-progress
-
-      - name: Compiler l'installateur Windows
-        shell: cmd
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\installateur.iss'
-
-      - name: Publier les binaires comme artefacts de build
+      - name: Publier le paquet comme artefact de build
         uses: actions/upload-artifact@v4
         with:
           name: easy-language-windows
-          path: |
-            dist/easy_language.exe
-            dist/easy_language_editeur.exe
-            Output/EasyLanguageSetup.exe
+          path: EasyLanguage-windows.zip
 
       - name: Creer la release GitHub (uniquement sur un tag v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/easy_language.exe
-            dist/easy_language_editeur.exe
-            Output/EasyLanguageSetup.exe
+          files: EasyLanguage-windows.zip

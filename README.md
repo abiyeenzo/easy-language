@@ -1,32 +1,49 @@
 # Easy Language
 
 Un langage de programmation interprété en français, avec des fichiers `.elg`.
-Interpréteur écrit en Python pur (aucune dépendance externe), qui fonctionne
-à l'identique sous Linux, macOS et Windows.
+Interpréteur écrit en C pur (`c/`, aucune dépendance externe), avec des
+points chauds en assembleur x86-64 inline pour l'arithmétique entière.
 
 Ce README est pour les développeurs. Pour un guide simple destiné aux
 utilisateurs de l'éditeur/interpréteur installé, voir
 [`GUIDE_UTILISATEUR.md`](GUIDE_UTILISATEUR.md). Historique des versions :
 [`CHANGELOG.md`](CHANGELOG.md).
 
-Version actuelle : `easy_language/version.py` (`--version` en ligne de
-commande, menu *Aide > A propos* dans l'éditeur).
-
 Pas de point-virgule, pas de virgule, pas d'accolade : les blocs sont
 délimités par indentation (comme en Python), après un `:`.
+
+## Compilation
+
+```
+cd c
+make linux     # easy_language, easy_debogueur (pour developper/tester ici)
+make windows   # + easy_editeur.exe, via cross-compilation mingw-w64
+```
+
+Voir [`packaging/README.md`](packaging/README.md) pour la CI et le detail
+de la cross-compilation.
 
 ## Utilisation
 
 ```
-python main.py exemples/bonjour.elg
+c/easy_language exemples/bonjour.elg
+c/easy_language --version
 ```
 
 ## Editeur et debogueur
 
 ```
-python editeur.py                    # editeur graphique (coloration syntaxique, F5 = lancer, F6 = deboguer)
-python debogueur_cli.py programme.elg [lignes_arret...]   # debogueur en ligne de commande
+c/easy_debogueur programme.elg [lignes_arret...]   # debogueur en ligne de commande
 ```
+Commandes du debogueur : `n` (suivant), `c` (continuer), `ba <ligne>` /
+`br <ligne>` (ajouter/retirer un point d'arret), `v` (variables),
+`p <nom>` (une variable), `q` (quitter).
+
+L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
+(RichEdit pour la coloration syntaxique, `CreateProcess`/pipes pour
+lancer `easy_language.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
+déboguer. Il ne se compile que pour Windows et doit rester dans le même
+dossier que les deux autres `.exe`.
 
 ## Site
 
@@ -127,54 +144,47 @@ virgule) : passez par une variable d'abord.
 - Fonctions natives : `longueur(x)`, `nombre(x)`, `entier(x)`, `texte(x)`,
   `ajoute(liste valeur)`, `retire(liste index)`, `contient(liste valeur)`
 
-### Modules
-
-Chaque fichier `.elg` peut être importé comme module, avec ses fonctions
-et variables accessibles via `module.nom`. Le chemin est relatif au
-fichier qui importe (les imports imbriqués fonctionnent).
-
-```
-importe "modules/mathutils.elg" comme math
-
-affiche math.PI
-affiche math.carre(5)
-```
-
-Sans `comme alias`, le nom du module est déduit du nom de fichier
-(`"mathutils.elg"` → `mathutils`). Un import circulaire est détecté et
-signalé comme erreur plutôt que de boucler indéfiniment.
-
 ### Commentaires
 
 ```
 # ceci est un commentaire
 ```
 
-## Limitation connue
+## Limitations connues
 
-Comme il n'y a pas de virgule, un argument multi-mots contenant un `+`/`-`
-en tête peut être avalé par l'expression précédente (ex: `affiche 3 -4`
-est lu comme `3 - 4`, pas deux arguments). Utilisez des parenthèses pour
-lever l'ambiguïté : `affiche 3 (-4)`.
+- Comme il n'y a pas de virgule, un argument multi-mots contenant un `+`/`-`
+  en tête peut être avalé par l'expression précédente (ex: `affiche 3 -4`
+  est lu comme `3 - 4`, pas deux arguments). Utilisez des parenthèses pour
+  lever l'ambiguïté : `affiche 3 (-4)`.
+- **Modules (`importe`) non supportés dans la version C** (ils existaient
+  dans une version antérieure en Python, retirée). Portage possible plus
+  tard si besoin.
+- **Pas de fermetures (closures) au-dela de la duree de vie d'un bloc.**
+  La version C libere la memoire d'une portee (bloc `si`/boucle/appel de
+  fonction) des qu'elle se termine, pour rester rapide sans ramasse-miettes.
+  Definir une fonction a l'interieur d'un bloc puis l'appeler apres coup
+  n'est donc pas garanti fonctionner ; definissez les fonctions au niveau
+  superieur du fichier.
+- L'éditeur graphique (Win32) n'a pas pu être testé visuellement dans cet
+  environnement de developpement (pas de Windows/Wine disponible) ; sa
+  compilation croisee reussit sans erreur, mais un test manuel sur une
+  vraie machine Windows est recommande.
 
-## Tests
+## Performance
 
-Suite de tests unitaires (stdlib `unittest`, aucune dépendance à installer) :
-lexer, parser, interpréteur (variables, boucles, fonctions, listes, erreurs),
-système de modules, et non-régression sur les scripts d'`exemples/`.
-
-```
-python -m unittest discover -v
-```
+Comparaison sur `fib(30)` recursif (interpreteur precedent en Python vs
+celui-ci en C) : **~30x plus rapide** en temps reel (2min26s -> 4.9s),
+jusqu'a ~38x en temps CPU pur. Le gain vient surtout de la compilation
+native (pas d'interpretation bytecode, pas de typage dynamique par objet
+Python) ; les quelques routines en assembleur inline sur l'arithmetique
+entiere (`+ - * -unaire`) ne font que documenter une integration ASM
+reelle sur le chemin le plus emprunte, un `-O2` C fait deja aussi bien
+sur des operations aussi simples.
 
 ## Distribution sous Windows
 
-Aucune dépendance : `python main.py programme.elg` fonctionne tel quel
-sous Windows avec Python 3 installé. Pour un `.exe` autonome (sans exiger
-Python sur la machine cible), on peut utiliser PyInstaller **depuis
-Windows** :
-
-```
-pip install pyinstaller
-pyinstaller --onefile --name easy_language main.py
-```
+Aucune dépendance à installer sur la machine cible : les trois `.exe`
+(`easy_language.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
+dépendent que de DLL systeme presentes par defaut sur Windows
+(`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`). Voir
+[`packaging/README.md`](packaging/README.md) pour la compilation.

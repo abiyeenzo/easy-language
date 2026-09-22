@@ -1,17 +1,30 @@
 # Packaging Windows
 
+Le langage est ecrit en C pur (voir `c/`), compile par cross-compilation
+avec `mingw-w64` (`x86_64-w64-mingw32-gcc`). Aucun runner Windows n'est
+necessaire pour produire les `.exe` : GCC/mingw supporte la
+cross-compilation reelle depuis Linux, contrairement a un empaqueteur
+comme PyInstaller.
+
 ## Automatique (recommande)
 
-Le workflow `.github/workflows/build-windows.yml` tourne sur `windows-latest`
-et fait tout automatiquement : tests, `easy_language.exe`,
-`easy_language_editeur.exe`, et `EasyLanguageSetup.exe` (installateur Inno
-Setup avec raccourcis + association `.elg`).
+Le workflow `.github/workflows/build-windows.yml` tourne sur
+`ubuntu-latest`, installe `gcc-mingw-w64-x86-64`, compile et verifie
+l'interpreteur natif (Linux), puis cross-compile les trois executables
+Windows :
 
-- Sur chaque push/PR : build de verification (artefacts telechargeables
-  depuis l'onglet "Actions" du depot, colonne "Artifacts").
+- `easy_language.exe` (interpreteur, ligne de commande)
+- `easy_debogueur.exe` (debogueur pas-a-pas, ligne de commande)
+- `easy_editeur.exe` (editeur graphique Win32)
+
+Le tout est zippe avec les exemples et la documentation dans
+`EasyLanguage-windows.zip`.
+
+- Sur chaque push/PR : build de verification (artefact telechargeable
+  depuis l'onglet "Actions" du depot).
 - Sur un tag `vX.Y.Z` pousse sur GitHub : cree en plus une **Release**
-  GitHub avec les 3 fichiers attaches, prets a etre lies depuis un bouton
-  de telechargement sur le site.
+  GitHub avec le zip attache, pret a etre lie depuis un bouton de
+  telechargement sur le site.
 
 Pour declencher une release :
 ```
@@ -19,16 +32,30 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-## Manuel (sur une machine Windows, pour tester avant de tagger)
+## Manuel (depuis Linux, ou Windows avec MinGW/MSYS2)
 
 ```
-pip install pyinstaller
-pyinstaller --onefile --name easy_language main.py
-pyinstaller --onefile --windowed --name easy_language_editeur editeur.py
-
-REM necessite Inno Setup installe (https://jrsoftware.org/isdl.php)
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\installateur.iss
+cd c
+make windows
 ```
 
-Resultats : `dist\easy_language.exe`, `dist\easy_language_editeur.exe`,
-`Output\EasyLanguageSetup.exe`.
+Resultats : `c/easy_language.exe`, `c/easy_debogueur.exe`,
+`c/easy_editeur.exe`. Les trois doivent rester dans le meme dossier :
+l'editeur lance les deux autres via `CreateProcess` en supposant qu'ils
+sont a cote de lui.
+
+## Verification locale (Linux, avant de cross-compiler)
+
+```
+cd c
+make linux
+./easy_language ../exemples/bonjour.elg
+./easy_debogueur ../exemples/fibonacci.elg 5
+```
+
+`easy_editeur.exe` utilise l'API Win32 directement (RichEdit,
+CreateProcess) : il ne se compile que pour Windows, et n'a pas pu etre
+teste visuellement depuis cet environnement Linux (pas de Windows/Wine
+disponible ici). Sa compilation croisee reussit sans erreur ni warning,
+ce qui donne une bonne confiance, mais un test manuel sur une vraie
+machine Windows reste recommande avant de s'y fier pour un rendu final.
