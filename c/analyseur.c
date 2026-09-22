@@ -52,6 +52,10 @@ static Jeton attendre(Analyseur *a, TypeJeton t, const char *msg) {
     return avancer(a);
 }
 
+static void virgule_optionnelle(Analyseur *a) {
+    if (correspond(a, T_VIRGULE)) avancer(a);
+}
+
 static int debut_expression(TypeJeton t) {
     switch (t) {
         case T_NOMBRE_ENTIER: case T_NOMBRE_REEL: case T_TEXTE: case T_IDENT:
@@ -95,6 +99,7 @@ static Noeud *primaire_base(Analyseur *a) {
         int cap = 0;
         while (debut_expression(type_actuel(a))) {
             n->enfants = noeuds_ajouter(n->enfants, &n->nb_enfants, &cap, expression(a));
+            virgule_optionnelle(a);
         }
         attendre(a, T_CROCHET_F, "']' attendu pour fermer la liste");
         return n;
@@ -120,6 +125,7 @@ static Noeud *primaire_base(Analyseur *a) {
             int cap = 0;
             while (debut_expression(type_actuel(a))) {
                 n->enfants = noeuds_ajouter(n->enfants, &n->nb_enfants, &cap, expression(a));
+                virgule_optionnelle(a);
             }
             attendre(a, T_PARF, "')' attendu apres les arguments");
             return n;
@@ -297,9 +303,13 @@ static Noeud *affiche(Analyseur *a) {
 
 static Noeud *demande(Analyseur *a) {
     int ligne = avancer(a).ligne;
+    int parenthese = correspond(a, T_PARO);
+    if (parenthese) avancer(a);
     char *nom = attendre(a, T_IDENT, "nom de variable attendu apres 'demande'").texte;
     char *invite = NULL;
+    if (parenthese) virgule_optionnelle(a);
     if (correspond(a, T_TEXTE)) invite = avancer(a).texte;
+    if (parenthese) attendre(a, T_PARF, "')' attendu apres 'demande'");
     fin_instruction(a);
     Noeud *n = creer_noeud(N_DEMANDE, ligne);
     n->nom = nom; n->invite = invite;
@@ -391,6 +401,7 @@ static Noeud *definition_fonction(Analyseur *a) {
     int cap = 0;
     while (correspond(a, T_IDENT)) {
         n->parametres = chaines_ajouter(n->parametres, &n->nb_parametres, &cap, avancer(a).texte);
+        virgule_optionnelle(a);
     }
     attendre(a, T_PARF, "')' attendu");
     attendre(a, T_DEUX_POINTS, "':' attendu");

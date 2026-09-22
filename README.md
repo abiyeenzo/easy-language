@@ -79,9 +79,10 @@ x = x + 1          # réaffectation (sans 'soit')
 
 ```
 affiche "Bonjour" nom "tu as" age "ans"
-demande age "Ton age : "
+demande(age, "Ton age : ")
 ```
 `demande` convertit automatiquement en nombre si possible, sinon garde du texte.
+La forme sans parentheses (`demande age "Ton age : "`) reste acceptee.
 
 ### Conditions
 
@@ -125,7 +126,7 @@ Les arguments multiples sont séparés par des espaces, pas des virgules :
 Pas de virgule : les éléments sont séparés par des espaces, entre crochets.
 
 ```
-soit fruits = ["pomme" "banane" "cerise"]
+soit fruits = ["pomme", "banane", "cerise"]
 affiche fruits[0]
 fruits[1] = "mangue"
 
@@ -136,7 +137,7 @@ affiche contient(fruits "kiwi")
 pour chaque fruit dans fruits alors:
     affiche fruit
 
-soit matrice = [[1 2] [3 4]]
+soit matrice = [[1, 2], [3, 4]]
 affiche matrice[1][0]
 ```
 
@@ -150,7 +151,7 @@ virgule) : passez par une variable d'abord.
 - Texte : `"bonjour"`
 - Booléens : `vrai`, `faux`
 - Rien : `rien`
-- Listes : `[1 2 3]`
+- Listes : `[1, 2, 3]` (la virgule est optionnelle : `[1 2 3]` marche aussi)
 - Arithmétique : `+ - * / %` (le `+` concatène aussi textes et listes)
 - Comparaison : `== != < > <= >=`
 - Logique : `et`, `ou`, `non`

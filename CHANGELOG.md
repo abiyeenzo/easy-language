@@ -2,6 +2,26 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [Non publie]
+
+### Ajoute
+- `demande` accepte desormais une syntaxe avec parentheses,
+  `demande(nom, "invite")`, en plus de l'ancienne forme `demande nom
+  "invite"` (toujours valide).
+- Virgule optionnelle comme separateur dans les litteraux de liste, les
+  arguments d'appel de fonction et les parametres de definition de
+  fonction (`[1, 2, 3]`, `fonction f(a, b):`, `f(1, 2)`).
+
+### Corrige
+- Editeur graphique : le champ d'entree standard etait un buffer a
+  pre-remplir avant de lancer le script (F5), ferme des le lancement.
+  Si une valeur manquait, `demande` lisait une entree vide, causant des
+  variables vides puis des erreurs de type sur les comparaisons
+  (`l'operateur '>=' attend des nombres`). Le champ d'entree reste
+  maintenant ouvert pendant toute l'execution (comme pour le
+  debogueur) : l'utilisateur tape sa reponse au moment ou `demande`
+  l'attend reellement, puis Entree.
+
 ## [2.0.0]
 
 Reecriture complete du langage en C (aucune dependance a Python n'est

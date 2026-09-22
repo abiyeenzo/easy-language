@@ -1,5 +1,5 @@
-demande nom "Quel est ton nom : "
-demande age "Quel est ton age : "
+demande(nom, "Quel est ton nom : ")
+demande(age, "Quel est ton age : ")
 
 affiche "Bonjour" nom "tu as" age "ans"
 

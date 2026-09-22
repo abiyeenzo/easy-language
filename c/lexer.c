@@ -45,7 +45,7 @@ static const Symbole SYMBOLES[] = {
     {"+", T_PLUS}, {"-", T_MOINS}, {"*", T_FOIS}, {"/", T_DIVISE}, {"%", T_MODULO},
     {"=", T_EGAL}, {"<", T_INF}, {">", T_SUP},
     {"(", T_PARO}, {")", T_PARF}, {"[", T_CROCHET_O}, {"]", T_CROCHET_F},
-    {":", T_DEUX_POINTS},
+    {":", T_DEUX_POINTS}, {",", T_VIRGULE},
 };
 #define NB_SYMBOLES (sizeof(SYMBOLES) / sizeof(SYMBOLES[0]))
 

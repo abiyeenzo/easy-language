@@ -28,7 +28,6 @@
 
 #define ID_EDITEUR 101
 #define ID_SORTIE 102
-#define ID_ENTREE_STDIN 103
 #define ID_ENTREE_COMMANDE 104
 
 #define ID_MENU_NOUVEAU 201
@@ -43,9 +42,9 @@
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
 #define WM_APP_PROCESSUS_TERMINE (WM_APP + 2)
 
-static HWND g_fenetre, g_editeur, g_sortie, g_entree_stdin, g_entree_commande;
+static HWND g_fenetre, g_editeur, g_sortie, g_entree_commande, g_label_entree;
 static wchar_t g_chemin_fichier[MAX_PATH] = L"";
-static HANDLE g_pipe_commande_ecriture = NULL;
+static HANDLE g_pipe_entree_ecriture = NULL;
 static HANDLE g_processus_courant = NULL;
 static volatile BOOL g_processus_actif = FALSE;
 static BOOL g_en_coloration = FALSE;
@@ -248,18 +247,14 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
         return;
     }
 
-    if (mode_debogueur) {
-        g_pipe_commande_ecriture = entree_ecriture;
-        EnableWindow(g_entree_commande, TRUE);
-        SetFocus(g_entree_commande);
-    } else {
-        int longueur = GetWindowTextLengthW(g_entree_stdin);
-        wchar_t *entree = malloc(sizeof(wchar_t) * (longueur + 1));
-        GetWindowTextW(g_entree_stdin, entree, longueur + 1);
-        ecrire_utf8(entree_ecriture, entree);
-        free(entree);
-        CloseHandle(entree_ecriture);
-    }
+    /* Le pipe d'entree reste ouvert dans les deux modes: l'utilisateur
+       tape une ligne dans g_entree_commande et l'envoie avec Entree des
+       qu'un 'demande' (ou une commande de debogueur) en a besoin, au lieu
+       de devoir tout pre-remplir avant le lancement. */
+    (void)mode_debogueur;
+    g_pipe_entree_ecriture = entree_ecriture;
+    EnableWindow(g_entree_commande, TRUE);
+    SetFocus(g_entree_commande);
 
     g_processus_courant = pi.hProcess;
     g_processus_actif = TRUE;
@@ -383,14 +378,6 @@ static void creer_controles(HWND hwnd) {
     SendMessageW(g_editeur, EM_SETEVENTMASK, 0, ENM_CHANGE);
     SendMessageW(g_editeur, WM_SETFONT, (WPARAM)police, TRUE);
 
-    CreateWindowExW(0, L"STATIC", L"Entree standard (une valeur par ligne, pour 'demande'):",
-        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, instance, NULL);
-
-    g_entree_stdin = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL,
-        0, 0, 0, 0, hwnd, (HMENU)ID_ENTREE_STDIN, instance, NULL);
-    SendMessageW(g_entree_stdin, WM_SETFONT, (WPARAM)police, TRUE);
-
     CreateWindowExW(0, L"STATIC", L"Sortie:", WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, hwnd, NULL, instance, NULL);
 
@@ -398,6 +385,10 @@ static void creer_controles(HWND hwnd) {
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
         0, 0, 0, 0, hwnd, (HMENU)ID_SORTIE, instance, NULL);
     SendMessageW(g_sortie, WM_SETFONT, (WPARAM)police, TRUE);
+
+    g_label_entree = CreateWindowExW(0, L"STATIC",
+        L"Entree (tapez une reponse pour 'demande', ou une commande de debogueur, puis Entree):",
+        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, instance, NULL);
 
     g_entree_commande = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_DISABLED,
@@ -412,18 +403,17 @@ static void redimensionner_controles(HWND hwnd) {
     int hauteur = rc.bottom - rc.top;
 
     int y = 0;
-    int h_editeur = (int)(hauteur * 0.55);
+    int h_editeur = (int)(hauteur * 0.6);
     MoveWindow(g_editeur, 0, y, largeur, h_editeur, TRUE);
     y += h_editeur;
 
-    MoveWindow(g_entree_stdin, 0, y + 18, largeur, 50, TRUE);
-    y += 18 + 50;
-
-    int h_sortie = hauteur - y - 40;
+    int h_sortie = hauteur - y - 44;
     if (h_sortie < 50) h_sortie = 50;
-    MoveWindow(g_sortie, 0, y + 18, largeur, h_sortie, TRUE);
-    y += 18 + h_sortie;
+    MoveWindow(g_sortie, 0, y, largeur, h_sortie, TRUE);
+    y += h_sortie;
 
+    MoveWindow(g_label_entree, 0, y, largeur, 18, TRUE);
+    y += 18;
     MoveWindow(g_entree_commande, 0, y, largeur, 24, TRUE);
 }
 
@@ -490,18 +480,18 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
     }
 }
 
-static void envoyer_commande_debogueur(void) {
-    if (!g_pipe_commande_ecriture) return;
+static void envoyer_ligne_entree(void) {
+    if (!g_pipe_entree_ecriture) return;
     int longueur = GetWindowTextLengthW(g_entree_commande);
     wchar_t *texte = malloc(sizeof(wchar_t) * (longueur + 2));
     GetWindowTextW(g_entree_commande, texte, longueur + 1);
     wcscat(texte, L"\r\n");
 
     wchar_t echo[600];
-    _snwprintf(echo, 600, L"(debogueur) %s\r\n", texte);
+    _snwprintf(echo, 600, L"> %s\r\n", texte);
     ajouter_texte_sortie(echo);
 
-    ecrire_utf8(g_pipe_commande_ecriture, texte);
+    ecrire_utf8(g_pipe_entree_ecriture, texte);
     free(texte);
     SetWindowTextW(g_entree_commande, L"");
 }
@@ -509,7 +499,7 @@ static void envoyer_commande_debogueur(void) {
 static WNDPROC g_proc_originale_commande;
 static LRESULT CALLBACK proc_entree_commande(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     if (msg == WM_KEYDOWN && wp == VK_RETURN) {
-        envoyer_commande_debogueur();
+        envoyer_ligne_entree();
         return 0;
     }
     return CallWindowProcW(g_proc_originale_commande, hwnd, msg, wp, lp);
@@ -542,7 +532,7 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         case WM_APP_PROCESSUS_TERMINE:
             g_processus_actif = FALSE;
             EnableWindow(g_entree_commande, FALSE);
-            if (g_pipe_commande_ecriture) { CloseHandle(g_pipe_commande_ecriture); g_pipe_commande_ecriture = NULL; }
+            if (g_pipe_entree_ecriture) { CloseHandle(g_pipe_entree_ecriture); g_pipe_entree_ecriture = NULL; }
             if (g_processus_courant) g_processus_courant = NULL;
             return 0;
 

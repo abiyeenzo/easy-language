@@ -27,14 +27,15 @@ l'editeur. C'est par la qu'on commence.
 3. Appuyez sur **F5** (ou menu *Executer > Lancer*). Le resultat s'affiche
    dans la zone "Sortie" en bas de la fenetre.
 4. Si votre script utilise `demande` (pour lire une reponse de
-   l'utilisateur), ecrivez les valeurs a l'avance dans la zone
-   "Entree standard", une par ligne.
+   l'utilisateur), l'execution s'arrete a ce moment-la : tapez la
+   reponse dans le champ "Entree" en bas de la fenetre, puis Entree.
+   Le programme continue avec cette valeur.
 
 ## Trouver une erreur (le debogueur)
 
 Appuyez sur **F6** au lieu de F5. Le programme s'arrete a la premiere
-ligne. Ecrivez une commande dans le champ "Commande debogueur" en bas,
-puis Entree :
+ligne. Ecrivez une commande dans le champ "Entree" en bas (le meme champ
+que pour repondre a `demande`), puis Entree :
 
 | Commande | Effet |
 |---|---|
@@ -51,7 +52,7 @@ puis Entree :
 soit x = 5                    variable
 x = x + 1                     reaffectation (sans 'soit')
 affiche "valeur:" x            afficher plusieurs valeurs
-demande age "Ton age : "       lire une entree
+demande(age, "Ton age : ")     lire une entree
 
 si x > 10 alors:
     affiche "grand"
@@ -67,14 +68,16 @@ pour i de 1 jusqua 5 alors:
 fonction carre(x):
     retourne x * x
 
-soit fruits = ["pomme" "banane"]
+soit fruits = ["pomme", "banane"]
 affiche fruits[0]
 pour chaque f dans fruits alors:
     affiche f
 ```
 
-Pas de virgule, pas de point-virgule, pas d'accolade : les blocs sont
-delimites par l'indentation, apres `:`, comme en Python.
+Pas de point-virgule, pas d'accolade : les blocs sont delimites par
+l'indentation, apres `:`, comme en Python. La virgule est acceptee (et
+recommandee pour la lisibilite) dans les listes et les appels de
+fonction, mais reste optionnelle.
 
 ## Des exemples tout prets
 
