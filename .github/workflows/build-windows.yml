@@ -70,3 +70,32 @@ jobs:
             packaging/icone.ico
             packaging/associer_fichiers.ps1
             packaging/associer_fichiers.bat
+
+  installateur:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recuperer les .exe compiles (job precedent)
+        uses: actions/download-artifact@v4
+        with:
+          name: easy-language-windows
+          path: .
+
+      - name: Compiler l'installateur avec Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: packaging/installateur.iss
+
+      - name: Publier l'installateur comme artefact de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-language-installateur
+          path: dist_installateur/EasyLanguage-installateur.exe
+
+      - name: Ajouter l'installateur a la release GitHub (uniquement sur un tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist_installateur/EasyLanguage-installateur.exe

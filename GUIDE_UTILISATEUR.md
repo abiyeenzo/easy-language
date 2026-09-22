@@ -9,19 +9,33 @@ Un langage de programmation simple, avec des mots-cles en francais
 (`soit`, `si`, `pour`, `affiche`...). Les fichiers que vous ecrivez
 portent l'extension `.elg`.
 
-## Apres l'installation
+## Installation
 
-Le raccourci **Easy Language - Editeur** (Bureau ou menu Demarrer) ouvre
-l'editeur. C'est par la qu'on commence.
+Deux facons de recuperer Easy Language depuis la page "Releases" du
+depot GitHub :
 
-## Avoir le logo sur vos fichiers .elg (optionnel)
+- **`EasyLanguage-installateur.exe`** (recommande) : double-cliquez,
+  suivez l'assistant. Aucun droit administrateur necessaire. Il cree le
+  raccourci **Easy Language - Editeur** (Bureau + menu Demarrer),
+  associe les fichiers `.elg` au logo et a l'editeur, et propose
+  d'ajouter Easy Language au `PATH` (pour utiliser `easy_language` /
+  `easy_debogueur` depuis l'invite de commandes). Une desinstallation
+  standard est disponible dans les parametres Windows.
+- **`EasyLanguage-windows.zip`** (portable) : extrayez le zip ou vous
+  voulez, aucune installation. Pour avoir aussi le logo sur vos
+  fichiers `.elg`, double-cliquez sur `associer_fichiers.bat` dans le
+  dossier extrait.
 
-Dans le dossier telecharge, double-cliquez sur **`associer_fichiers.bat`**.
-Une fenetre s'ouvre brievement puis se ferme : vos fichiers `.elg`
-affichent desormais le logo Easy Language dans l'Explorateur, et s'ouvrent
-directement dans l'editeur en double-cliquant dessus. Aucune installation
-ni droit administrateur necessaire ; ca ne change rien en dehors de votre
-compte Windows.
+## Utiliser Easy Language depuis l'invite de commandes
+
+Si vous avez coche l'option pendant l'installation, ouvrez une
+**nouvelle** fenetre `cmd` ou PowerShell (celles deja ouvertes ne
+voient pas le changement) et tapez :
+
+```
+easy_language mon_script.elg
+easy_debogueur mon_script.elg
+```
 
 ## Ecrire et lancer votre premier script
 

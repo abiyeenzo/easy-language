@@ -12,12 +12,23 @@ Toutes les versions notables du projet sont documentees ici.
   arguments d'appel de fonction et les parametres de definition de
   fonction (`[1, 2, 3]`, `fonction f(a, b):`, `f(1, 2)`).
 - Logo du langage (`packaging/icone.ico`), embarque dans les trois `.exe`
-  via une ressource Windows (`c/ressources.rc`) : visible dans
-  l'Explorateur, la barre des taches et la barre de titre de l'editeur.
-  Script `packaging/associer_fichiers.ps1` (+ wrapper `.bat` a
-  double-cliquer) pour associer l'extension `.elg` a ce logo et a
-  l'editeur, sans droit administrateur. Logo egalement ajoute en favicon
-  et en-tete de `site/index.html`.
+  via une ressource Windows par executable (`c/ressources_*.rc`) :
+  visible dans l'Explorateur, la barre des taches et la barre de titre
+  de l'editeur. Script `packaging/associer_fichiers.ps1` (+ wrapper
+  `.bat` a double-cliquer) pour associer l'extension `.elg` a ce logo et
+  a l'editeur, sans droit administrateur. Logo egalement ajoute en
+  favicon et en-tete de `site/index.html`.
+- Metadonnees d'auteur dans les trois `.exe` (onglet Details des
+  proprietes du fichier dans l'Explorateur) : societe "AE Corporation",
+  copyright "Abiye Enzo", nom/version du produit.
+- Fichier `LICENSE` : tous droits reserves (Abiye Enzo / AE Corporation).
+- Installateur Windows (`packaging/installateur.iss`, compile en CI avec
+  Inno Setup) : `EasyLanguage-installateur.exe` installe les trois
+  executables dans le profil utilisateur (aucun droit admin requis),
+  cree les raccourcis Bureau/menu Demarrer, associe `.elg` au logo et a
+  l'editeur, et propose d'ajouter Easy Language au `PATH` utilisateur
+  pour l'utiliser depuis `cmd`/PowerShell. Publie en release a cote du
+  zip portable existant.
 
 ### Corrige
 - Editeur graphique : le champ d'entree standard etait un buffer a
