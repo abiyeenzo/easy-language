@@ -20,6 +20,17 @@ char *lire_fichier(const char *chemin) {
     return contenu;
 }
 
+void obtenir_dossier(char *dehors, size_t taille, const char *chemin) {
+    const char *sep1 = strrchr(chemin, '/');
+    const char *sep2 = strrchr(chemin, '\\');
+    const char *sep = (sep2 && (!sep1 || sep2 > sep1)) ? sep2 : sep1;
+    if (!sep) { snprintf(dehors, taille, "."); return; }
+    size_t longueur = (size_t)(sep - chemin);
+    if (longueur >= taille) longueur = taille - 1;
+    memcpy(dehors, chemin, longueur);
+    dehors[longueur] = '\0';
+}
+
 char **decouper_lignes(const char *source, int *nb_dehors) {
     int capacite = 64;
     char **lignes = malloc(sizeof(char *) * capacite);

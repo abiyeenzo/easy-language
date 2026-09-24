@@ -510,6 +510,15 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
   </details>
 
   <details>
+  <summary>Modules</summary>
+  <pre><code><span class="kw">importe</span> <span class="str">"modules/mathutils.elg"</span> <span class="kw">comme</span> math
+
+<span class="kw">affiche</span> math.PI
+<span class="kw">affiche</span> math.carre(5)</code></pre>
+  <p>Chaque fichier <code>.elg</code> peut etre importe comme espace de noms. Chemin relatif au fichier qui importe (les imports imbriques fonctionnent), sans alias le nom vient du fichier, un module n'est charge qu'une fois, et un import circulaire est detecte proprement.</p>
+  </details>
+
+  <details>
   <summary>Types et operateurs</summary>
   <table>
     <tr><th>Categorie</th><th>Details</th></tr>
@@ -527,7 +536,7 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
 
   <details>
   <summary>Limitations connues</summary>
-  <p>Pas de systeme de modules (<code>importe</code>) dans la version C actuelle. Pas de fermetures au-dela de la duree de vie d'un bloc : une fonction definie a l'interieur d'un <code>si</code> ou d'une boucle doit etre appelee dans ce meme bloc ; definissez vos fonctions au niveau superieur du fichier pour eviter tout probleme.</p>
+  <p>Pas de fermetures au-dela de la duree de vie d'un bloc : une fonction definie a l'interieur d'un <code>si</code> ou d'une boucle doit etre appelee dans ce meme bloc ; definissez vos fonctions au niveau superieur du fichier pour eviter tout probleme.</p>
   </details>
 </section>
 

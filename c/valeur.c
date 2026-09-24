@@ -56,6 +56,13 @@ Valeur valeur_fonction(FonctionVal *f) {
     return v;
 }
 
+Valeur valeur_module(ModuleVal *m) {
+    Valeur v;
+    v.type = V_MODULE;
+    v.comme.module = m;
+    return v;
+}
+
 int valeur_est_vraie(Valeur v) {
     switch (v.type) {
         case V_RIEN: return 0;
@@ -65,6 +72,7 @@ int valeur_est_vraie(Valeur v) {
         case V_TEXTE: return v.comme.texte[0] != '\0';
         case V_LISTE: return v.comme.liste->compte > 0;
         case V_FONCTION: return 1;
+        case V_MODULE: return 1;
     }
     return 0;
 }
@@ -99,6 +107,7 @@ int valeur_egales(Valeur a, Valeur b) {
             return 1;
         }
         case V_FONCTION: return a.comme.fonction == b.comme.fonction;
+        case V_MODULE: return a.comme.module == b.comme.module;
     }
     return 0;
 }
@@ -121,6 +130,9 @@ char *valeur_formater(Valeur v) {
             return strdup(v.comme.texte);
         case V_FONCTION:
             snprintf(tampon, sizeof(tampon), "<fonction %s>", v.comme.fonction->nom);
+            return strdup(tampon);
+        case V_MODULE:
+            snprintf(tampon, sizeof(tampon), "<module %s>", v.comme.module->nom);
             return strdup(tampon);
         case V_LISTE: {
             Liste *l = v.comme.liste;

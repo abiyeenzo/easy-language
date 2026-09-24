@@ -29,6 +29,10 @@ int main(int argc, char **argv) {
 
     debogueur_installer(lignes, nb_lignes, points, nb_points);
 
+    char dossier[4096];
+    obtenir_dossier(dossier, sizeof(dossier), argv[1]);
+    interpreteur_definir_dossier(dossier);
+
     printf("=== Debogueur Easy Language === (tapez 'aide' pour les commandes)\n");
     interpreteur_executer(programme, globales);
     printf("=== programme termine ===\n");

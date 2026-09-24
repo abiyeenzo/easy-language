@@ -95,6 +95,9 @@ soit fruits = ["pomme", "banane"]
 affiche fruits[0]
 pour chaque f dans fruits alors:
     affiche f
+
+importe "outils.elg" comme outils
+affiche outils.uneFonction()
 ```
 
 Pas de point-virgule, pas d'accolade : les blocs sont delimites par

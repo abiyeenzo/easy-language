@@ -142,13 +142,35 @@ static Noeud *primaire_base(Analyseur *a) {
 static Noeud *primaire(Analyseur *a) {
     Noeud *cible = primaire_base(a);
     if (cible->type == N_LISTE) return cible;
-    while (correspond(a, T_CROCHET_O)) {
+    while (correspond(a, T_CROCHET_O) || correspond(a, T_POINT)) {
+        if (correspond(a, T_CROCHET_O)) {
+            int ligne = avancer(a).ligne;
+            Noeud *idx = expression(a);
+            attendre(a, T_CROCHET_F, "']' attendu");
+            Noeud *n = creer_noeud(N_INDEXATION, ligne);
+            n->cible = cible; n->index = idx;
+            cible = n;
+            continue;
+        }
+
         int ligne = avancer(a).ligne;
-        Noeud *idx = expression(a);
-        attendre(a, T_CROCHET_F, "']' attendu");
-        Noeud *n = creer_noeud(N_INDEXATION, ligne);
-        n->cible = cible; n->index = idx;
-        cible = n;
+        char *nom = attendre(a, T_IDENT, "nom de membre attendu apres '.'").texte;
+        if (correspond(a, T_PARO)) {
+            avancer(a);
+            Noeud *n = creer_noeud(N_APPEL_METHODE, ligne);
+            n->cible = cible; n->nom = nom;
+            int cap = 0;
+            while (debut_expression(type_actuel(a))) {
+                n->enfants = noeuds_ajouter(n->enfants, &n->nb_enfants, &cap, expression(a));
+                virgule_optionnelle(a);
+            }
+            attendre(a, T_PARF, "')' attendu apres les arguments");
+            cible = n;
+        } else {
+            Noeud *n = creer_noeud(N_ACCES_MEMBRE, ligne);
+            n->cible = cible; n->nom = nom;
+            cible = n;
+        }
     }
     return cible;
 }
@@ -420,9 +442,24 @@ static Noeud *retourne(Analyseur *a) {
     return n;
 }
 
+static Noeud *importation(Analyseur *a) {
+    int ligne = avancer(a).ligne;
+    char *chemin = attendre(a, T_TEXTE, "chemin de fichier (texte) attendu apres 'importe'").texte;
+    char *alias = NULL;
+    if (correspond(a, T_COMME)) {
+        avancer(a);
+        alias = attendre(a, T_IDENT, "nom d'alias attendu apres 'comme'").texte;
+    }
+    fin_instruction(a);
+    Noeud *n = creer_noeud(N_IMPORTATION, ligne);
+    n->texte = chemin; n->nom = alias;
+    return n;
+}
+
 static Noeud *instruction(Analyseur *a) {
     switch (type_actuel(a)) {
         case T_SOIT: return declaration(a);
+        case T_IMPORTE: return importation(a);
         case T_AFFICHE: return affiche(a);
         case T_DEMANDE: return demande(a);
         case T_SI: return si(a);

@@ -163,6 +163,25 @@ virgule) : passez par une variable d'abord.
 - Fonctions natives : `longueur(x)`, `nombre(x)`, `entier(x)`, `texte(x)`,
   `ajoute(liste valeur)`, `retire(liste index)`, `contient(liste valeur)`
 
+### Modules
+
+Chaque fichier `.elg` peut être importé comme module, avec ses fonctions
+et variables accessibles via `module.nom`. Le chemin est relatif au
+fichier qui importe (les imports imbriqués fonctionnent).
+
+```
+importe "modules/mathutils.elg" comme math
+
+affiche math.PI
+affiche math.carre(5)
+```
+
+Sans `comme alias`, le nom du module est déduit du nom de fichier
+(`"mathutils.elg"` → `mathutils`). Un module n'est chargé qu'une seule
+fois même s'il est importé plusieurs fois (mis en cache par chemin), et
+un import circulaire est détecté et signalé comme erreur plutôt que de
+boucler indéfiniment.
+
 ### Commentaires
 
 ```
@@ -175,9 +194,6 @@ virgule) : passez par une variable d'abord.
   en tête peut être avalé par l'expression précédente (ex: `affiche 3 -4`
   est lu comme `3 - 4`, pas deux arguments). Utilisez des parenthèses pour
   lever l'ambiguïté : `affiche 3 (-4)`.
-- **Modules (`importe`) non supportés dans la version C** (ils existaient
-  dans une version antérieure en Python, retirée). Portage possible plus
-  tard si besoin.
 - **Pas de fermetures (closures) au-dela de la duree de vie d'un bloc.**
   La version C libere la memoire d'une portee (bloc `si`/boucle/appel de
   fonction) des qu'elle se termine, pour rester rapide sans ramasse-miettes.

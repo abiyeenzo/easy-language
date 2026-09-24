@@ -2,6 +2,18 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [1.0.4] - 2026-09-24
+
+### Ajoute
+- Systeme de modules en C (`importe "fichier.elg" comme alias`), avec
+  acces aux fonctions/variables exportees via `module.nom` et
+  `module.fonction(args)`. Chemin resolu relativement au fichier qui
+  importe (imports imbriques pris en charge), alias deduit du nom de
+  fichier si omis, modules mis en cache (charges une seule fois), et
+  detection d'import circulaire. Reintroduit le module d'exemple
+  `exemples/module_demo.elg` + `exemples/modules/mathutils.elg`,
+  retires lors de la reecriture en C faute de temps.
+
 ## [1.0.3] - 2026-09-24
 
 ### Ajoute

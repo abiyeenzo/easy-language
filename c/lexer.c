@@ -16,6 +16,7 @@ static const MotCle MOTS_CLES[] = {
     {"vrai", T_VRAI}, {"faux", T_FAUX}, {"rien", T_RIEN},
     {"et", T_ET}, {"ou", T_OU}, {"non", T_NON},
     {"arrete", T_ARRETE}, {"continue", T_CONTINUE},
+    {"importe", T_IMPORTE}, {"comme", T_COMME},
 };
 #define NB_MOTS_CLES (sizeof(MOTS_CLES) / sizeof(MOTS_CLES[0]))
 
@@ -45,7 +46,7 @@ static const Symbole SYMBOLES[] = {
     {"+", T_PLUS}, {"-", T_MOINS}, {"*", T_FOIS}, {"/", T_DIVISE}, {"%", T_MODULO},
     {"=", T_EGAL}, {"<", T_INF}, {">", T_SUP},
     {"(", T_PARO}, {")", T_PARF}, {"[", T_CROCHET_O}, {"]", T_CROCHET_F},
-    {":", T_DEUX_POINTS}, {",", T_VIRGULE},
+    {":", T_DEUX_POINTS}, {",", T_VIRGULE}, {".", T_POINT},
 };
 #define NB_SYMBOLES (sizeof(SYMBOLES) / sizeof(SYMBOLES[0]))
 

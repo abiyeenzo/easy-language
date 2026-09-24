@@ -7,7 +7,7 @@
 #include "lexer.h"
 #include "util.h"
 
-#define VERSION "1.0.3"
+#define VERSION "1.0.4"
 
 int main(int argc, char **argv) {
     if (argc == 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {
@@ -24,6 +24,11 @@ int main(int argc, char **argv) {
     ListeJetons jetons = lexer_tokeniser(source);
     Noeud *programme = analyseur_analyser(jetons);
     Environnement *globales = environnement_creer(NULL);
+
+    char dossier[4096];
+    obtenir_dossier(dossier, sizeof(dossier), argv[1]);
+    interpreteur_definir_dossier(dossier);
+
     interpreteur_executer(programme, globales);
     return 0;
 }

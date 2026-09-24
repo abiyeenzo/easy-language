@@ -9,6 +9,7 @@ typedef enum {
     N_ARRETE, N_CONTINUE, N_EXPR_INSTRUCTION, N_AFFECTATION_INDEX,
     N_LITTERAL_ENTIER, N_LITTERAL_REEL, N_LITTERAL_TEXTE, N_LITTERAL_BOOLEEN, N_LITTERAL_RIEN,
     N_VARIABLE, N_BINAIRE, N_UNAIRE, N_APPEL, N_LISTE, N_INDEXATION,
+    N_IMPORTATION, N_ACCES_MEMBRE, N_APPEL_METHODE,
 } TypeNoeud;
 
 typedef enum {
@@ -33,7 +34,8 @@ struct Noeud {
     char *texte;
     int booleen;
 
-    /* variable / declaration / affectation / demande / appel / fonction_def / pour / pour_chaque */
+    /* variable / declaration / affectation / demande / appel / fonction_def / pour / pour_chaque
+       importation (nom = alias, peut etre NULL ; texte = chemin) / acces_membre / appel_methode (nom = membre) */
     char *nom;
     char *invite; /* demande, peut etre NULL */
 

@@ -1,10 +1,15 @@
 #include "interpreteur.h"
 
+#include <ctype.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "analyseur.h"
+#include "lexer.h"
+#include "util.h"
 
 /* ------------------------------------------------------------------ */
 /* Point chaud: operations arithmetiques entieres en assembleur x86-64 */
@@ -78,6 +83,59 @@ static void erreur_execution(int ligne, const char *msg) {
 
 static Resultat resultat_normal(void) {
     Resultat r; r.statut = STATUT_NORMAL; r.valeur = valeur_rien(); return r;
+}
+
+/* ------------------------------------------------------------------ */
+/* modules (importe ... comme ...)                                     */
+
+#define MAX_MODULES_CHARGES 64
+#define MAX_IMPORTS_EN_COURS 64
+
+typedef struct { char *chemin; Valeur module; } EntreeCacheModule;
+
+static char g_dossier_actuel[4096] = ".";
+static EntreeCacheModule g_cache_modules[MAX_MODULES_CHARGES];
+static int g_nb_modules_charges = 0;
+static char *g_modules_en_cours[MAX_IMPORTS_EN_COURS];
+static int g_nb_modules_en_cours = 0;
+
+void interpreteur_definir_dossier(const char *dossier) {
+    snprintf(g_dossier_actuel, sizeof(g_dossier_actuel), "%s", dossier);
+}
+
+/* snprintf tronque proprement (toujours termine par '\0') si un chemin
+   depasse 4096 caracteres ; GCC ne peut pas le prouver statiquement d'ou
+   l'avertissement desactive ici localement. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+static void joindre_chemin(char *dehors, size_t taille, const char *dossier, const char *relatif) {
+    int absolu = relatif[0] == '/' || relatif[0] == '\\' ||
+                 (isalpha((unsigned char)relatif[0]) && relatif[1] == ':');
+    if (absolu) snprintf(dehors, taille, "%s", relatif);
+    else snprintf(dehors, taille, "%s/%s", dossier, relatif);
+}
+#pragma GCC diagnostic pop
+
+static int chercher_module(const char *chemin, Valeur *dehors) {
+    for (int i = 0; i < g_nb_modules_charges; i++) {
+        if (strcmp(g_cache_modules[i].chemin, chemin) == 0) { *dehors = g_cache_modules[i].module; return 1; }
+    }
+    return 0;
+}
+
+static void enregistrer_module(const char *chemin, Valeur module) {
+    if (g_nb_modules_charges < MAX_MODULES_CHARGES) {
+        g_cache_modules[g_nb_modules_charges].chemin = strdup(chemin);
+        g_cache_modules[g_nb_modules_charges].module = module;
+        g_nb_modules_charges++;
+    }
+}
+
+static int module_en_cours_de_chargement(const char *chemin) {
+    for (int i = 0; i < g_nb_modules_en_cours; i++) {
+        if (strcmp(g_modules_en_cours[i], chemin) == 0) return 1;
+    }
+    return 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -351,10 +409,112 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
             return appeler_fonction(cible.comme.fonction, args, nb, n->ligne);
         }
 
+        case N_ACCES_MEMBRE: {
+            Valeur cible = evaluer(n->cible, env);
+            if (cible.type != V_MODULE) erreur_execution(n->ligne, "impossible d'acceder a un membre: ce n'est pas un module");
+            Valeur v;
+            if (!environnement_obtenir(cible.comme.module->environnement, n->nom, &v)) {
+                char msg[220];
+                snprintf(msg, sizeof(msg), "le module '%s' n'exporte pas '%s'", cible.comme.module->nom, n->nom);
+                erreur_execution(n->ligne, msg);
+            }
+            return v;
+        }
+
+        case N_APPEL_METHODE: {
+            Valeur cible = evaluer(n->cible, env);
+            if (cible.type != V_MODULE) erreur_execution(n->ligne, "impossible d'appeler un membre: ce n'est pas un module");
+            Valeur fonction_v;
+            if (!environnement_obtenir(cible.comme.module->environnement, n->nom, &fonction_v)) {
+                char msg[220];
+                snprintf(msg, sizeof(msg), "le module '%s' n'exporte pas '%s'", cible.comme.module->nom, n->nom);
+                erreur_execution(n->ligne, msg);
+            }
+            if (fonction_v.type != V_FONCTION) {
+                char msg[220];
+                snprintf(msg, sizeof(msg), "'%s.%s' n'est pas une fonction", cible.comme.module->nom, n->nom);
+                erreur_execution(n->ligne, msg);
+            }
+            Valeur args[64];
+            int nb = n->nb_enfants;
+            if (nb > 64) erreur_execution(n->ligne, "trop d'arguments");
+            for (int i = 0; i < nb; i++) args[i] = evaluer(n->enfants[i], env);
+            return appeler_fonction(fonction_v.comme.fonction, args, nb, n->ligne);
+        }
+
         default:
             erreur_execution(n->ligne, "noeud d'expression inconnu");
             return valeur_rien();
     }
+}
+
+static void executer_importation(Noeud *n, Environnement *env) {
+    char chemin_absolu[4096];
+    joindre_chemin(chemin_absolu, sizeof(chemin_absolu), g_dossier_actuel, n->texte);
+
+    char alias_calcule[256];
+    const char *alias = n->nom;
+    if (!alias) {
+        const char *sep1 = strrchr(n->texte, '/');
+        const char *sep2 = strrchr(n->texte, '\\');
+        const char *base = (sep2 && (!sep1 || sep2 > sep1)) ? sep2 : sep1;
+        base = base ? base + 1 : n->texte;
+        snprintf(alias_calcule, sizeof(alias_calcule), "%s", base);
+        char *point = strrchr(alias_calcule, '.');
+        if (point) *point = '\0';
+        alias = alias_calcule;
+    }
+
+    Valeur module_existant;
+    if (chercher_module(chemin_absolu, &module_existant)) {
+        environnement_definir(env, alias, module_existant);
+        return;
+    }
+
+    if (module_en_cours_de_chargement(chemin_absolu)) {
+        char msg[300];
+        snprintf(msg, sizeof(msg), "import circulaire detecte: '%s'", n->texte);
+        erreur_execution(n->ligne, msg);
+    }
+
+    FILE *f = fopen(chemin_absolu, "rb");
+    if (!f) {
+        char msg[350];
+        snprintf(msg, sizeof(msg), "impossible d'importer '%s'", n->texte);
+        erreur_execution(n->ligne, msg);
+    }
+    fseek(f, 0, SEEK_END);
+    long taille = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *source = malloc(taille + 1);
+    size_t lu = fread(source, 1, (size_t)taille, f);
+    source[lu] = '\0';
+    fclose(f);
+
+    ListeJetons jetons = lexer_tokeniser(source);
+    Noeud *programme_module = analyseur_analyser(jetons);
+    Environnement *env_module = environnement_creer(NULL);
+
+    char dossier_precedent[4096];
+    snprintf(dossier_precedent, sizeof(dossier_precedent), "%s", g_dossier_actuel);
+    obtenir_dossier(g_dossier_actuel, sizeof(g_dossier_actuel), chemin_absolu);
+
+    if (g_nb_modules_en_cours < MAX_IMPORTS_EN_COURS) {
+        g_modules_en_cours[g_nb_modules_en_cours++] = strdup(chemin_absolu);
+    }
+
+    executer_bloc(programme_module->instructions, programme_module->nb_instructions, env_module);
+
+    if (g_nb_modules_en_cours > 0) g_nb_modules_en_cours--;
+    snprintf(g_dossier_actuel, sizeof(g_dossier_actuel), "%s", dossier_precedent);
+
+    ModuleVal *m = malloc(sizeof(ModuleVal));
+    m->nom = strdup(alias);
+    m->environnement = env_module;
+    Valeur v = valeur_module(m);
+
+    enregistrer_module(chemin_absolu, v);
+    environnement_definir(env, alias, v);
 }
 
 /* ------------------------------------------------------------------ */
@@ -530,6 +690,10 @@ static Resultat executer_instruction(Noeud *n, Environnement *env) {
 
         case N_EXPR_INSTRUCTION:
             evaluer(n->expression, env);
+            return resultat_normal();
+
+        case N_IMPORTATION:
+            executer_importation(n, env);
             return resultat_normal();
 
         default:

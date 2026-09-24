@@ -15,6 +15,7 @@ typedef enum {
     V_TEXTE,
     V_LISTE,
     V_FONCTION,
+    V_MODULE,
 } TypeValeur;
 
 typedef struct {
@@ -32,6 +33,11 @@ typedef struct {
     const char *nom;
 } FonctionVal;
 
+typedef struct {
+    char *nom;
+    Environnement *environnement;
+} ModuleVal;
+
 struct Valeur {
     TypeValeur type;
     union {
@@ -41,6 +47,7 @@ struct Valeur {
         char *texte;
         Liste *liste;
         FonctionVal *fonction;
+        ModuleVal *module;
     } comme;
 };
 
@@ -51,6 +58,7 @@ Valeur valeur_booleen(int v);
 Valeur valeur_texte(const char *v);
 Valeur valeur_liste_vide(void);
 Valeur valeur_fonction(FonctionVal *f);
+Valeur valeur_module(ModuleVal *m);
 
 int valeur_est_vraie(Valeur v);
 int valeur_est_nombre(Valeur v);

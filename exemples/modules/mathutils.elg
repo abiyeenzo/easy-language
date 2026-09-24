@@ -1,0 +1,12 @@
+# module : fonctions mathematiques reutilisables
+
+soit PI = 3.14159
+
+fonction carre(x):
+    retourne x * x
+
+fonction cube(x):
+    retourne x * x * x
+
+fonction est_pair(n):
+    retourne n % 2 == 0
