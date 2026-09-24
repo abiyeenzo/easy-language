@@ -1,0 +1,20 @@
+# demonstration de la bibliotheque standard (math, os, reseau, gui)
+
+importe "../bibliotheque/math.elg" comme math
+importe "../bibliotheque/os.elg" comme os
+
+affiche "--- math ---"
+affiche "PI =" math.PI
+affiche "racine de 2 =" math.racine(2)
+affiche "2 puissance 10 =" math.puissance(2 10)
+affiche "max(3 7) =" math.max(3 7)
+affiche "un nombre au hasard entre 1 et 6 :" math.alea_entier(1 6)
+
+affiche "--- os ---"
+affiche "dossier courant :" os.repertoire_courant()
+affiche "horodatage :" os.horodatage()
+
+soit chemin = "essai_bibliotheque.txt"
+os.ecrire_fichier(chemin "Easy Language sait ecrire des fichiers.")
+affiche "contenu relu :" os.lire_fichier(chemin)
+os.supprimer_fichier(chemin)

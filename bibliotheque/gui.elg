@@ -1,0 +1,10 @@
+# Bibliotheque d'interface graphique : boites de dialogue simples (pas un
+# framework de fenetres). Sous Windows (.exe), une vraie boite Win32
+# s'affiche (MessageBoxW). Ailleurs (developpement/tests), repli console
+# pour rester executable. importe "bibliotheque/gui.elg" comme gui.
+
+fonction message(titre texte):
+    retourne boite_message(titre texte)
+
+fonction question(titre texte):
+    retourne boite_question(titre texte)

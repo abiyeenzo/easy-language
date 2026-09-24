@@ -42,6 +42,7 @@ jobs:
           cp c/easy_language.exe c/easy_debogueur.exe c/easy_editeur.exe dist_windows/
           cp packaging/icone.ico packaging/associer_fichiers.ps1 packaging/associer_fichiers.bat dist_windows/
           cp -r exemples dist_windows/
+          cp -r bibliotheque dist_windows/
           cp README.md GUIDE_UTILISATEUR.md CHANGELOG.md dist_windows/
           cd dist_windows && zip -r ../EasyLanguage-windows.zip .
 

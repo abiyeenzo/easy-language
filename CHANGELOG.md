@@ -2,6 +2,26 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [1.0.5] - 2026-09-24
+
+### Ajoute
+- Bibliotheque standard (`bibliotheque/`), equivalent reduit des modules
+  Python `math`, `os` et `socket`, plus des boites de dialogue simples :
+  - `math.elg` : racine, puissance, sin/cos/tan, abs, plancher/plafond/
+    arrondi, log/exp, alea/alea_entier, min/max, constantes PI et E.
+  - `os.elg` : fichier_existe, lire_fichier, ecrire_fichier,
+    ajouter_fichier, supprimer_fichier, repertoire_courant,
+    variable_environnement, horodatage, dormir.
+  - `reseau.elg` : client TCP basique (connecter/envoyer/recevoir/fermer).
+  - `gui.elg` : message()/question(), vraies boites Win32 (MessageBoxW)
+    sous Windows, repli console ailleurs pour rester testable partout.
+  Implementees comme fonctions natives en C (`c/natifs_math.c`,
+  `c/natifs_os.c`, `c/natifs_reseau.c`, `c/natifs_gui.c`) enveloppees par
+  des modules `.elg` pour l'acces namespace (`math.racine(x)`).
+- 41 nouveaux tests (`c/tests/test_natifs.c`, dont un aller-retour TCP
+  reel contre un serveur d'echo lance par le test lui-meme, et un cycle
+  fichier complet ecriture/lecture/ajout/suppression) : 122 au total.
+
 ## [1.0.4] - 2026-09-24
 
 ### Ajoute

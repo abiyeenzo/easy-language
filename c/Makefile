@@ -2,10 +2,16 @@ CC = gcc
 CFLAGS = -O2 -Wall -Wextra -std=gnu11
 LDFLAGS = -lm
 
-SRC_COMMUNS = lexer.c analyseur.c valeur.c environnement.c interpreteur.c util.c
+SRC_COMMUNS = lexer.c analyseur.c valeur.c environnement.c interpreteur.c util.c \
+              natifs_math.c natifs_os.c natifs_reseau.c natifs_gui.c
 
 WINCC = x86_64-w64-mingw32-gcc
 WINDRES = x86_64-w64-mingw32-windres
+
+# natifs_reseau.c (Winsock) et natifs_gui.c (MessageBoxW) ont besoin de ces
+# bibliotheques systeme uniquement sous Windows ; rien de supplementaire
+# n'est requis sous Linux (sockets POSIX et repli console dans la libc).
+WINLIBS = -lws2_32 -luser32
 
 .PHONY: all clean windows linux tests
 
@@ -36,16 +42,16 @@ ressources_editeur.o: ressources_editeur.rc ressources.h ../packaging/icone.ico
 	$(WINDRES) -o $@ ressources_editeur.rc
 
 easy_language.exe: main.c $(SRC_COMMUNS) ressources_interpreteur.o
-	$(WINCC) $(CFLAGS) -o $@ main.c $(SRC_COMMUNS) ressources_interpreteur.o $(LDFLAGS)
+	$(WINCC) $(CFLAGS) -o $@ main.c $(SRC_COMMUNS) ressources_interpreteur.o $(LDFLAGS) $(WINLIBS)
 
 easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o
-	$(WINCC) $(CFLAGS) -o $@ debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o $(LDFLAGS)
+	$(WINCC) $(CFLAGS) -o $@ debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o $(LDFLAGS) $(WINLIBS)
 
 easy_editeur.exe: editeur.c ressources_editeur.o
 	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ editeur.c ressources_editeur.o -lcomdlg32 -lgdi32 -luser32 -lkernel32
 
 tests: easy_language easy_debogueur
-	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/aide.c
+	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/test_natifs.c tests/aide.c
 	cd tests && ./executer_tests
 
 clean:

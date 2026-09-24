@@ -16,6 +16,12 @@ typedef struct {
    ../easy_language. 'entree' (peut etre NULL) est fournie sur stdin. */
 ResultatExecution executer_script(const char *source, const char *entree);
 
+/* Comme executer_script, mais le fichier .elg temporaire est cree dans
+   'dossier' plutot que /tmp : utile pour tester un 'importe' relatif
+   (ex: dossier = "../../bibliotheque" pour importer directement "math.elg"
+   sans dependre du chemin absolu du depot). */
+ResultatExecution executer_script_dans_dossier(const char *source, const char *entree, const char *dossier);
+
 void executer_script_liberer(ResultatExecution r);
 
 extern int TESTS_TOTAL;

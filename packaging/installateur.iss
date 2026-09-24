@@ -5,7 +5,7 @@
 ; sont deja compiles (cf. packaging/README.md, cible "make windows").
 
 #define MyAppName "Easy Language"
-#define MyAppVersion "1.0.4"
+#define MyAppVersion "1.0.5"
 #define MyAppPublisher "AE Corporation"
 #define MyAppURL "https://github.com/abiyeenzo/easy-language"
 #define MyAppExeEditeur "easy_editeur.exe"
@@ -47,6 +47,7 @@ Source: "..\c\easy_debogueur.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\c\easy_editeur.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icone.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\exemples\*"; DestDir: "{app}\exemples"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\bibliotheque\*"; DestDir: "{app}\bibliotheque"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\GUIDE_UTILISATEUR.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion

@@ -33,8 +33,9 @@ make tests
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
 binaire `easy_language`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
-81 verifications : variables, boucles, fonctions, listes, erreurs, entree
-standard, debogueur.
+122 verifications : variables, boucles, fonctions, listes, erreurs, entree
+standard, debogueur, bibliotheque standard (math/os/reseau/gui, y compris
+un aller-retour TCP reel contre un serveur d'echo lance par le test lui-meme).
 
 ## Utilisation
 
@@ -182,6 +183,45 @@ fois même s'il est importé plusieurs fois (mis en cache par chemin), et
 un import circulaire est détecté et signalé comme erreur plutôt que de
 boucler indéfiniment.
 
+### Bibliothèque standard
+
+Le dossier [`bibliotheque/`](bibliotheque/) contient un petit équivalent
+des modules `math`, `os` et `socket` de Python (plus des boîtes de
+dialogue simples), sous forme de fichiers `.elg` important les fonctions
+natives correspondantes (implémentées en C dans `c/natifs_*.c`) :
+
+```
+importe "bibliotheque/math.elg" comme math
+importe "bibliotheque/os.elg" comme os
+importe "bibliotheque/reseau.elg" comme reseau
+importe "bibliotheque/gui.elg" comme gui
+
+affiche math.racine(2)
+affiche os.fichier_existe("notes.txt")
+soit s = reseau.connecter("example.com" 80)
+gui.message("Titre" "Un message")
+```
+
+- **`math`** : `racine`, `puissance`, `sin`, `cos`, `tan`, `abs`,
+  `plancher`, `plafond`, `arrondi`, `log`, `exp`, `alea`, `alea_entier`,
+  `min`, `max`, constantes `PI` et `E`.
+- **`os`** : `fichier_existe`, `lire_fichier`, `ecrire_fichier`,
+  `ajouter_fichier`, `supprimer_fichier`, `repertoire_courant`,
+  `variable_environnement`, `horodatage`, `dormir`. `lire_fichier` sur un
+  fichier absent retourne `rien` (pas une erreur : c'est un cas normal
+  pour ce type d'opération, à la différence des erreurs de programme qui
+  arrêtent le script).
+- **`reseau`** : client TCP basique (`connecter`, `envoyer`, `recevoir`,
+  `fermer`). Pas de serveur, pas de HTTP/TLS : juste un socket brut.
+- **`gui`** : `message(titre texte)` et `question(titre texte)`, deux
+  boîtes de dialogue simples (pas un framework de fenêtres). Sous Windows
+  (`.exe`), une vraie boîte Win32 s'affiche (`MessageBoxW`) ; ailleurs
+  (développement, tests, CI Linux), repli console pour rester exécutable
+  et testable partout.
+
+Ces fonctions natives sont aussi appelables directement sans import
+(`affiche racine(4)`), le module ne fait qu'ajouter un espace de noms.
+
 ### Commentaires
 
 ```
@@ -221,7 +261,8 @@ sur des operations aussi simples.
 Aucune dépendance à installer sur la machine cible : les trois `.exe`
 (`easy_language.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
 dépendent que de DLL systeme presentes par defaut sur Windows
-(`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`). Voir
+(`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`, `ws2_32` pour le
+reseau). Voir
 [`packaging/README.md`](packaging/README.md) pour la compilation, et
 [`packaging/installateur.iss`](packaging/installateur.iss) pour
 l'installateur (menu Demarrer, association `.elg`, ajout au `PATH`).

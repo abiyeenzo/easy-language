@@ -33,8 +33,9 @@ void verifier_contient_impl(const char *obtenu, const char *sous_chaine, const c
     }
 }
 
-ResultatExecution executer_script(const char *source, const char *entree) {
-    char chemin_script[] = "/tmp/test_easylang_XXXXXX.elg";
+static ResultatExecution executer_script_impl(const char *source, const char *entree, const char *dossier) {
+    char chemin_script[512];
+    snprintf(chemin_script, sizeof(chemin_script), "%s/test_easylang_XXXXXX.elg", dossier);
     int fd = mkstemps(chemin_script, 4);
     if (fd < 0) { perror("mkstemps"); exit(1); }
     write(fd, source, strlen(source));
@@ -47,7 +48,7 @@ ResultatExecution executer_script(const char *source, const char *entree) {
         close(fd_entree);
     }
 
-    char commande[512];
+    char commande[1200];
     if (entree) {
         snprintf(commande, sizeof(commande), "../easy_language '%s' < '%s' 2>&1", chemin_script, chemin_entree);
     } else {
@@ -78,6 +79,14 @@ ResultatExecution executer_script(const char *source, const char *entree) {
     r.sortie = tampon;
     r.code_sortie = WIFEXITED(statut) ? WEXITSTATUS(statut) : -1;
     return r;
+}
+
+ResultatExecution executer_script(const char *source, const char *entree) {
+    return executer_script_impl(source, entree, "/tmp");
+}
+
+ResultatExecution executer_script_dans_dossier(const char *source, const char *entree, const char *dossier) {
+    return executer_script_impl(source, entree, dossier);
 }
 
 void executer_script_liberer(ResultatExecution r) {

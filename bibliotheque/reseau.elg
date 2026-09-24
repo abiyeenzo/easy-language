@@ -1,0 +1,15 @@
+# Bibliotheque reseau : client TCP basique. importe "bibliotheque/reseau.elg"
+# comme reseau. connecter() retourne un descripteur de socket (entier, -1
+# si echec) ; recevoir() retourne rien quand la connexion est fermee.
+
+fonction connecter(hote port):
+    retourne reseau_connecter(hote port)
+
+fonction envoyer(socket texte):
+    retourne reseau_envoyer(socket texte)
+
+fonction recevoir(socket taille_max):
+    retourne reseau_recevoir(socket taille_max)
+
+fonction fermer(socket):
+    retourne reseau_fermer(socket)

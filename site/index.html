@@ -554,6 +554,16 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
   </details>
 
   <details>
+  <summary>Bibliotheque standard</summary>
+  <pre><code><span class="kw">importe</span> <span class="str">"bibliotheque/math.elg"</span> <span class="kw">comme</span> math
+<span class="kw">importe</span> <span class="str">"bibliotheque/os.elg"</span> <span class="kw">comme</span> os
+
+<span class="kw">affiche</span> math.racine(2)
+<span class="kw">affiche</span> os.fichier_existe(<span class="str">"notes.txt"</span>)</code></pre>
+  <p>Equivalent reduit des modules Python <code>math</code>, <code>os</code> et <code>socket</code>, plus des boites de dialogue simples : <code>math</code> (racine, puissance, sin/cos/tan, abs, plancher/plafond/arrondi, log/exp, alea, min/max, PI, E), <code>os</code> (fichier_existe, lire_fichier, ecrire_fichier, ajouter_fichier, supprimer_fichier, repertoire_courant, variable_environnement, horodatage, dormir), <code>reseau</code> (client TCP : connecter/envoyer/recevoir/fermer), <code>gui</code> (message/question : vraies boites Win32 sous Windows, repli console ailleurs).</p>
+  </details>
+
+  <details>
   <summary>Limitations connues</summary>
   <p>Pas de fermetures au-dela de la duree de vie d'un bloc : une fonction definie a l'interieur d'un <code>si</code> ou d'une boucle doit etre appelee dans ce meme bloc ; definissez vos fonctions au niveau superieur du fichier pour eviter tout probleme.</p>
   </details>
@@ -601,6 +611,13 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
   </div>
 
   <div class="journal">
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.5</span>
+        <span class="version-date">24 septembre 2026</span>
+      </div>
+      <p>Bibliotheque standard (<code>bibliotheque/</code>) : equivalent reduit des modules Python <code>math</code>, <code>os</code> et <code>socket</code>, plus des boites de dialogue simples. 41 nouveaux tests, 122 au total.</p>
+    </div>
     <div class="version">
       <div class="version-entete">
         <span class="version-numero">v1.0.4</span>

@@ -18,4 +18,9 @@ void interpreteur_definir_dossier(const char *dossier);
 
 void interpreteur_executer(Noeud *programme, Environnement *globales);
 
+/* Affiche "Erreur ligne N: msg" sur stderr et quitte (exit 1), comme
+   toutes les erreurs d'execution du langage. Exposee aux modules de
+   natifs (natifs_*.c) pour rester coherente avec les erreurs du coeur. */
+void interpreteur_erreur(int ligne, const char *msg);
+
 #endif

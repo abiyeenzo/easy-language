@@ -9,6 +9,10 @@
 
 #include "analyseur.h"
 #include "lexer.h"
+#include "natifs_gui.h"
+#include "natifs_math.h"
+#include "natifs_os.h"
+#include "natifs_reseau.h"
 #include "util.h"
 
 /* ------------------------------------------------------------------ */
@@ -394,6 +398,10 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
             for (int i = 0; i < nb; i++) args[i] = evaluer(n->enfants[i], env);
 
             if (est_native(n->nom)) return appeler_native(n->nom, args, nb, n->ligne);
+            if (natifs_math_est(n->nom)) return natifs_math_appeler(n->nom, args, nb, n->ligne);
+            if (natifs_os_est(n->nom)) return natifs_os_appeler(n->nom, args, nb, n->ligne);
+            if (natifs_reseau_est(n->nom)) return natifs_reseau_appeler(n->nom, args, nb, n->ligne);
+            if (natifs_gui_est(n->nom)) return natifs_gui_appeler(n->nom, args, nb, n->ligne);
 
             Valeur cible;
             if (!environnement_obtenir(env, n->nom, &cible)) {
@@ -712,4 +720,8 @@ static Resultat executer_bloc(Noeud **instructions, int n, Environnement *env) {
 
 void interpreteur_executer(Noeud *programme, Environnement *globales) {
     executer_bloc(programme->instructions, programme->nb_instructions, globales);
+}
+
+void interpreteur_erreur(int ligne, const char *msg) {
+    erreur_execution(ligne, msg);
 }
