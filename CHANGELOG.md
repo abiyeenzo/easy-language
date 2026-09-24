@@ -2,6 +2,38 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [1.0.9] - 2026-09-25
+
+### Corrige
+- **Plantage a l'ouverture d'un fichier ou au clic dans l'arborescence
+  (`0xC0000005`).** Trouve grace au journal ajoute en 1.0.8 (l'exception
+  y apparaissait deux fois au meme timestamp/adresse). Cause :
+  `peupler_arborescence` (qui appelle `TreeView_DeleteAllItems`) etait
+  invoquee directement depuis le gestionnaire de la notification
+  `TVN_SELCHANGEDW` du controle lui-meme, c'est-a-dire qu'on detruisait
+  ses elements pendant que comctl32 etait encore en train de terminer
+  son propre traitement du clic, plus bas sur la meme pile d'appel
+  (classique plantage de reentrance en Win32 ; explique aussi le double
+  enregistrement, la boite de dialogue du premier plantage ayant force
+  un nouveau rendu qui a fait replanter au meme endroit). Corrige en
+  differant le rafraichissement de l'arborescence par un message poste
+  a soi-meme, traite seulement une fois la notification d'origine
+  terminee.
+- Gouttiere des numeros de ligne : `g_gutter` est cree avant `g_editeur`
+  dans `creer_controles`, un tout premier `WM_PAINT` (le controle a
+  `WS_VISIBLE`) pouvait donc theoriquement arriver avant que `g_editeur`
+  existe. Garde defensive ajoutee.
+
+### Ameliore
+- Journal de plantage : identifie desormais le module (exe ou dll)
+  contenant l'adresse fautive et le decalage a l'interieur
+  (`comctl32.dll+0x1234`), plus utile qu'une adresse absolue brute
+  (randomisee par l'ASLR a chaque execution, donc inutilisable seule
+  d'une fois sur l'autre) pour distinguer un bug dans notre propre code
+  d'un appel Win32 mal utilise vers une DLL systeme. Garde de reentrance
+  ajoutee (un deuxieme plantage pendant le traitement du premier termine
+  immediatement plutot que de rejouer tout le traitement).
+
 ## [1.0.8] - 2026-09-24
 
 ### Ajoute

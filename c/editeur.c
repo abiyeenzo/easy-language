@@ -31,7 +31,7 @@
 
 #include "ressources.h"
 
-#define VERSION_EDITEUR "1.0.8"
+#define VERSION_EDITEUR "1.0.9"
 #define VERSION_EDITEUR_WIDE_(s) L##s
 #define VERSION_EDITEUR_WIDE(s) VERSION_EDITEUR_WIDE_(s)
 #define VERSION_EDITEUR_L VERSION_EDITEUR_WIDE(VERSION_EDITEUR)
@@ -61,6 +61,7 @@
 #define WM_APP_MAJ_DISPONIBLE (WM_APP + 3)
 #define WM_APP_MAJ_AUCUNE (WM_APP + 4)
 #define WM_APP_MAJ_ERREUR (WM_APP + 5)
+#define WM_APP_RAFRAICHIR_ARBO (WM_APP + 6)
 
 static HWND g_fenetre, g_editeur, g_sortie, g_entree_commande, g_label_entree;
 static HWND g_barre_etat;
@@ -105,6 +106,7 @@ static BOOL g_chargement_document = FALSE;
 
 static HWND g_arborescence;
 static wchar_t g_arbo_dossier_base[MAX_PATH] = L"";
+static wchar_t g_arbo_dossier_en_attente[MAX_PATH] = L"";
 static wchar_t g_arbo_noms[MAX_ARBO_ENTREES][MAX_PATH];
 static BOOL g_arbo_est_dossier[MAX_ARBO_ENTREES];
 static int g_arbo_compte = 0;
@@ -177,10 +179,44 @@ static void ouvrir_journal(void) {
    l'exception suffisent deja a orienter le diagnostic, combines au
    dernier evenement journalise juste avant (quelle action etait en
    cours). */
+static volatile LONG g_plantage_en_cours = 0;
+
 static LONG WINAPI filtre_exception_non_geree(EXCEPTION_POINTERS *info) {
-    journaliser(L"PLANTAGE : code d'exception 0x%08lX a l'adresse 0x%p",
-        (unsigned long)info->ExceptionRecord->ExceptionCode,
-        info->ExceptionRecord->ExceptionAddress);
+    /* Garde de reentrance : si un deuxieme plantage survient pendant le
+       traitement du premier (par exemple parce que la boite de dialogue
+       ci-dessous force un nouveau rendu d'une fenetre deja corrompue),
+       on ne rejoue pas tout le traitement (deuxieme entree de journal,
+       deuxieme boite de dialogue qui pompe encore des messages...) :
+       terminaison immediate. */
+    if (InterlockedCompareExchange(&g_plantage_en_cours, 1, 0) != 0) {
+        TerminateProcess(GetCurrentProcess(), 1);
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    void *adresse = info->ExceptionRecord->ExceptionAddress;
+    HMODULE module = NULL;
+    /* Identifie le module (exe ou dll) contenant l'adresse fautive :
+       "easy_editeur.exe+0x1234" pointe vers notre propre code (utile
+       avec le binaire correspondant et un outil comme addr2line, le
+       decalage restant stable d'une execution a l'autre malgre l'ASLR
+       qui randomise l'adresse absolue) ; un nom de DLL systeme
+       (comctl32.dll, user32.dll...) oriente plutot vers un appel Win32
+       mal utilise cote appelant plutot qu'un bug direct dans ce fichier. */
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCWSTR)adresse, &module);
+    if (module) {
+        wchar_t chemin_module[MAX_PATH] = L"?";
+        GetModuleFileNameW(module, chemin_module, MAX_PATH);
+        const wchar_t *nom_module = wcsrchr(chemin_module, L'\\');
+        nom_module = nom_module ? nom_module + 1 : chemin_module;
+        unsigned long long decalage = (unsigned long long)((char *)adresse - (char *)module);
+        journaliser(L"PLANTAGE : code 0x%08lX dans %s+0x%llX (adresse absolue 0x%p)",
+            (unsigned long)info->ExceptionRecord->ExceptionCode, nom_module, decalage, adresse);
+    } else {
+        journaliser(L"PLANTAGE : code 0x%08lX a l'adresse 0x%p (module inconnu)",
+            (unsigned long)info->ExceptionRecord->ExceptionCode, adresse);
+    }
+
     wchar_t message[300];
     _snwprintf(message, 300,
         L"Easy Language a rencontre un probleme et doit se fermer.\n\nDetails enregistres dans :\n%s",
@@ -301,6 +337,13 @@ static LRESULT CALLBACK proc_gouttiere(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         HBRUSH fond = CreateSolidBrush(RGB(238, 236, 242));
         FillRect(dc, &rc, fond);
         DeleteObject(fond);
+
+        /* g_gutter est cree avant g_editeur dans creer_controles (voir
+           son commentaire) : avec WS_VISIBLE, un tout premier WM_PAINT
+           peut theoriquement arriver avant que g_editeur existe. Garde
+           defensive, peu couteuse, pour ne jamais utiliser un handle
+           invalide dans les appels qui suivent. */
+        if (!g_editeur) { EndPaint(hwnd, &ps); return 0; }
 
         HFONT police = (HFONT)SendMessageW(g_editeur, WM_GETFONT, 0, 0);
         HFONT ancienne_police = (HFONT)SelectObject(dc, police);
@@ -460,6 +503,25 @@ static void obtenir_dossier_parent(const wchar_t *dossier, wchar_t *dehors, size
     if (sep && sep != dehors) *sep = L'\0';
 }
 
+/* Rafraichir l'arborescence (TreeView_DeleteAllItems + repeuplement)
+   DEPUIS le gestionnaire de sa propre notification TVN_SELCHANGEDW est
+   un plantage classique en Win32 : on detruirait les elements du
+   controle alors que comctl32 est encore en train de terminer son
+   propre traitement du clic, plus bas sur la meme pile d'appel (une
+   notification WM_NOTIFY est livree de facon synchrone, comme un appel
+   de fonction imbrique). D'ou la reconstruction differee : on poste un
+   message a soi-meme, traite seulement une fois revenu a la boucle de
+   messages, apres que la notification d'origine ait fini de se
+   derouler. Utilisee pour tout rafraichissement declenche par un clic
+   dans l'arborescence elle-meme (fichier ouvert, dossier navigue) ; le
+   peuplement initial au demarrage (avant tout clic) reste direct, sans
+   risque de reentrance. */
+static void demander_rafraichissement_arborescence(const wchar_t *dossier) {
+    wcsncpy(g_arbo_dossier_en_attente, dossier, MAX_PATH - 1);
+    g_arbo_dossier_en_attente[MAX_PATH - 1] = L'\0';
+    PostMessageW(g_fenetre, WM_APP_RAFRAICHIR_ARBO, 0, 0);
+}
+
 static void peupler_arborescence(const wchar_t *dossier) {
     TreeView_DeleteAllItems(g_arborescence);
     g_arbo_compte = 0;
@@ -508,7 +570,7 @@ static void gerer_clic_arborescence(int idx) {
     if (idx == -1) {
         wchar_t parent[MAX_PATH];
         obtenir_dossier_parent(g_arbo_dossier_base, parent, MAX_PATH);
-        peupler_arborescence(parent);
+        demander_rafraichissement_arborescence(parent);
         return;
     }
     if (idx < 0 || idx >= g_arbo_compte) return;
@@ -516,7 +578,7 @@ static void gerer_clic_arborescence(int idx) {
     wchar_t chemin[MAX_PATH];
     _snwprintf(chemin, MAX_PATH, L"%s\\%s", g_arbo_dossier_base, g_arbo_noms[idx]);
     if (g_arbo_est_dossier[idx]) {
-        peupler_arborescence(chemin);
+        demander_rafraichissement_arborescence(chemin);
     } else if (!charger_fichier(chemin)) {
         journaliser(L"Echec d'ouverture depuis l'arborescence : %s", chemin);
         MessageBoxW(g_fenetre, L"Impossible d'ouvrir ce fichier.", L"Erreur", MB_ICONERROR);
@@ -1007,7 +1069,7 @@ static BOOL charger_fichier(const wchar_t *chemin) {
 
     wchar_t dossier[MAX_PATH];
     obtenir_dossier_w(chemin, dossier, MAX_PATH);
-    peupler_arborescence(dossier);
+    demander_rafraichissement_arborescence(dossier);
     return TRUE;
 }
 
@@ -1445,6 +1507,10 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
 
         case WM_APP_MAJ_ERREUR:
             MessageBoxW(hwnd, L"Impossible de verifier les mises a jour (pas de connexion ?).", L"Mise a jour", MB_OK | MB_ICONWARNING);
+            return 0;
+
+        case WM_APP_RAFRAICHIR_ARBO:
+            peupler_arborescence(g_arbo_dossier_en_attente);
             return 0;
 
         case WM_DESTROY:

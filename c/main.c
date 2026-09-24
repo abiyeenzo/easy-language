@@ -8,7 +8,7 @@
 #include "lexer.h"
 #include "util.h"
 
-#define VERSION "1.0.8"
+#define VERSION "1.0.9"
 
 static void afficher_aide(const char *programme) {
     printf("Easy Language %s : interpreteur en ligne de commande.\n\n", VERSION);
