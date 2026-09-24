@@ -5,7 +5,7 @@
 ; sont deja compiles (cf. packaging/README.md, cible "make windows").
 
 #define MyAppName "Easy Language"
-#define MyAppVersion "1.0.6"
+#define MyAppVersion "1.0.7"
 #define MyAppPublisher "AE Corporation"
 #define MyAppURL "https://github.com/abiyeenzo/easy-language"
 #define MyAppExeEditeur "easy_editeur.exe"

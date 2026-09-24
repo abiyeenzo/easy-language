@@ -637,10 +637,17 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
   <div class="journal">
     <div class="version">
       <div class="version-entete">
+        <span class="version-numero">v1.0.7</span>
+        <span class="version-date">24 septembre 2026</span>
+      </div>
+      <p>Module <code>gui</code> : en plus des boites de dialogue, de vraies fenetres Win32 avec boutons/champs de texte/evenements (un clic peut rappeler une fonction Easy Language). Fermetures (closures) qui survivent a leur bloc. Ambiguite <code>3 -4</code> levee. Editeur graphique : barre d'outils retiree (doublon avec le menu), numeros de ligne, plusieurs fichiers en onglets, arborescence laterale, fichiers recents. Installateur : page d'attribution avant l'installation. Site : bouton pour copier la documentation en Markdown. 190 tests au total.</p>
+    </div>
+    <div class="version">
+      <div class="version-entete">
         <span class="version-numero">v1.0.6</span>
         <span class="version-date">24 septembre 2026</span>
       </div>
-      <p>Modules standard <code>texte</code> et <code>temps</code>, desormais importables sans chemin (<code>importe math</code>). Module <code>gui</code> : en plus des boites de dialogue, de vraies fenetres Win32 avec boutons/champs/evenements. Fermetures (closures) qui survivent a leur bloc. Editeur graphique : plusieurs fichiers en onglets, numeros de ligne, arborescence laterale, fichiers recents, verification automatique des mises a jour. Ligne de commande : <code>--aide modules</code>. Cache de resolution sur l'arbre syntaxique (~5x plus rapide sur du code recursif intensif). 190 tests au total.</p>
+      <p>Interpreteur renomme <code>easylang</code>. Modules standard <code>texte</code> et <code>temps</code>, desormais importables sans chemin (<code>importe math</code>). Editeur graphique : barre d'outils, barre d'etat, recherche de texte, verification automatique des mises a jour. Ligne de commande : <code>--aide modules</code> pour lister la bibliotheque standard. Cache de resolution sur l'arbre syntaxique (~5x plus rapide sur du code recursif intensif, ecart avec CPython reduit de ~8-10x a ~2.5x). 178 tests au total.</p>
     </div>
     <div class="version">
       <div class="version-entete">

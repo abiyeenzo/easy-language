@@ -2,18 +2,7 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
-## [1.0.6] - 2026-09-24
-
-### Change
-- L'interpreteur en ligne de commande est renomme `easy_language`(`.exe`)
-  -> `easylang`(`.exe`), pour une commande plus courte a taper une fois
-  installe et ajoute au `PATH`. Seul l'interpreteur est renomme ; le
-  debogueur (`easy_debogueur`) et l'editeur (`easy_editeur`) gardent
-  leur nom. Toutes les references (Makefile, CI, installateur, README,
-  guide utilisateur, site) sont mises a jour ; une installation
-  existante d'une version anterieure devra etre remplacee (l'installateur
-  desinstalle proprement l'ancienne version avant d'installer la
-  nouvelle).
+## [1.0.7] - 2026-09-24
 
 ### Ajoute
 - **Module `gui` : de vraies fenetres Win32.** En plus des boites de
@@ -39,13 +28,9 @@ Toutes les versions notables du projet sont documentees ici.
     non enregistrees, confirmation a la fermeture (Ctrl+W) si besoin.
   - Barre laterale avec une arborescence basique (dossier du fichier
     ouvert, navigation par dossier, clic sur un `.elg` pour l'ouvrir).
-- Installateur : page dediee (auteur, societe, depot) affichee avant
-  l'installation (`InfoBeforeFile`).
-- Site : bouton "Copier la doc (pour un LLM)" sur la section
-  Documentation, qui construit un Markdown propre a partir de la doc
-  affichee (sans copie separee a maintenir) et le met dans le
-  presse-papier.
-- 3 nouveaux tests (190 au total).
+  - Menu Fichier > Fichiers recents (jusqu'a 8, persistes par
+    utilisateur dans le registre Windows HKCU), avec option pour vider
+    la liste.
 - **Fermetures (closures).** Une fonction definie a l'interieur d'un bloc
   (`si`/boucle/appel de fonction) peut desormais etre retournee ou
   stockee ailleurs et rester appelable apres la fin de ce bloc, en
@@ -68,9 +53,35 @@ Toutes les versions notables du projet sont documentees ici.
   documente comme une limitation connue (contournement par parentheses).
   Le lexer garde maintenant, par jeton, si une espace le precedait
   immediatement. 5 nouveaux tests de non-regression.
-- Editeur graphique : menu Fichier > Fichiers recents (jusqu'a 8,
-  persistes par utilisateur dans le registre Windows HKCU) pour rouvrir
-  rapidement un script recent, avec option pour vider la liste.
+- Installateur : page dediee (auteur, societe, depot) affichee avant
+  l'installation (`InfoBeforeFile`).
+- Site : bouton "Copier la doc (pour un LLM)" sur la section
+  Documentation, qui construit un Markdown propre a partir de la doc
+  affichee (sans copie separee a maintenir) et le met dans le
+  presse-papier.
+- 12 nouveaux tests (190 au total).
+
+### Corrige
+- La section "Limitations connues" du site (accordéon de documentation)
+  mentionnait encore l'absence de fermetures, deja corrigee plus haut
+  dans cette meme version : trouve en testant le nouveau bouton "Copier
+  la doc" (qui extrait le texte reellement affiche), mis a jour pour
+  refleter l'etat actuel.
+
+## [1.0.6] - 2026-09-24
+
+### Change
+- L'interpreteur en ligne de commande est renomme `easy_language`(`.exe`)
+  -> `easylang`(`.exe`), pour une commande plus courte a taper une fois
+  installe et ajoute au `PATH`. Seul l'interpreteur est renomme ; le
+  debogueur (`easy_debogueur`) et l'editeur (`easy_editeur`) gardent
+  leur nom. Toutes les references (Makefile, CI, installateur, README,
+  guide utilisateur, site) sont mises a jour ; une installation
+  existante d'une version anterieure devra etre remplacee (l'installateur
+  desinstalle proprement l'ancienne version avant d'installer la
+  nouvelle).
+
+### Ajoute
 - Module standard `texte` (`bibliotheque/texte.elg`, natif
   `c/natifs_texte.c`) : decouper (split), joindre (join), remplacer,
   majuscules/minuscules, rogner (trim), commence_par/finit_par,
@@ -105,7 +116,7 @@ Toutes les versions notables du projet sont documentees ici.
   modules de la bibliotheque standard disponibles avec une courte
   description de chacun.
 - 40 nouveaux tests (`c/tests/test_texte_temps.c`,
-  `c/tests/test_import_systeme.c`) : 187 au total.
+  `c/tests/test_import_systeme.c`) : 178 au total.
 
 ### Ameliore
 - Reutilisation des `Environnement` (bloc/boucle/appel de fonction) via
@@ -137,11 +148,6 @@ Toutes les versions notables du projet sont documentees ici.
   apres cache de resolution) face a CPython 3.13.
 
 ### Corrige
-- La section "Limitations connues" du site (accordéon de documentation)
-  mentionnait encore l'absence de fermetures, deja corrigee plus haut
-  dans cette meme version : trouve en testant le nouveau bouton "Copier
-  la doc" (qui extrait le texte reellement affiche), mis a jour pour
-  refleter l'etat actuel.
 - **Bug introduit plus tot dans cette meme version** (reutilisation des
   environnements, ci-dessus) : `importe "chemin.elg"` sans `comme alias`
   calculait l'alias par defaut dans un tampon de pile local, or
