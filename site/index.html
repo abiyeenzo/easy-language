@@ -301,6 +301,24 @@
   .liste-secondaire .desc { color: var(--texte-attenue); flex: 1; }
   .liste-secondaire a { font-weight: 600; white-space: nowrap; }
 
+  .journal { display: flex; flex-direction: column; gap: 14px; }
+  .version {
+    border: 1px solid var(--bordure);
+    border-left: 3px solid var(--violet-500);
+    border-radius: 8px;
+    padding: 16px 20px;
+    background: var(--fond-alt);
+  }
+  .version-entete { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .version-numero {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 700;
+    color: var(--violet-700);
+    font-size: 0.98rem;
+  }
+  .version-date { font-size: 0.82rem; color: var(--texte-attenue); }
+  .version p { margin: 0; font-size: 0.92rem; color: var(--texte-attenue); }
+
   .politique {
     background: var(--fond-alt);
     border: 1px solid var(--bordure);
@@ -367,6 +385,7 @@
     <div class="marque"><img src="assets/logo.png" alt=""> Easy Language</div>
     <a class="lien" href="#fonctionnalites">Fonctionnalites</a>
     <a class="lien" href="#documentation">Documentation</a>
+    <a class="lien" href="#journal">Journal</a>
     <a class="lien" href="#licence">Licence</a>
     <a class="lien" href="https://github.com/abiyeenzo/easy-language">GitHub</a>
     <a class="bouton" href="#telecharger">Telecharger</a>
@@ -572,6 +591,52 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
       <a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_editeur.exe">Telecharger</a>
     </li>
   </ul>
+</section>
+
+<section id="journal">
+  <div class="entete-section">
+    <span class="oeillet">Journal des versions</span>
+    <h2>Ce qui a change</h2>
+    <p class="soustitre">Historique complet et detaille : <a href="https://github.com/abiyeenzo/easy-language/blob/main/CHANGELOG.md">CHANGELOG.md</a> sur le depot.</p>
+  </div>
+
+  <div class="journal">
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.4</span>
+        <span class="version-date">24 septembre 2026</span>
+      </div>
+      <p>Systeme de modules en C : <code>importe "fichier.elg" comme alias</code>, acces via <code>module.nom</code> et <code>module.fonction(args)</code>, imports imbriques, mise en cache, detection d'import circulaire.</p>
+    </div>
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.3</span>
+        <span class="version-date">24 septembre 2026</span>
+      </div>
+      <p>Refonte complete du site : identite visuelle, documentation a jour, section licence et politique de confidentialite, attribution a Abiye Enzo.</p>
+    </div>
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.2</span>
+        <span class="version-date">22 septembre 2026</span>
+      </div>
+      <p>Logo du langage embarque dans les trois executables, metadonnees d'auteur, licence tous droits reserves, installateur Windows (<code>EasyLanguage-installateur.exe</code>) avec raccourcis et association <code>.elg</code>.</p>
+    </div>
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.1</span>
+        <span class="version-date">22 septembre 2026</span>
+      </div>
+      <p><code>demande</code> accepte une syntaxe avec parentheses (<code>demande(nom, "invite")</code>), virgule optionnelle dans les listes et les appels de fonction.</p>
+    </div>
+    <div class="version">
+      <div class="version-entete">
+        <span class="version-numero">v1.0.0</span>
+        <span class="version-date">22 septembre 2026</span>
+      </div>
+      <p>Premiere version publique : interpreteur, editeur graphique et debogueur reecrits en C pur (~30x plus rapide qu'une version Python equivalente), suite de 81 tests, executables Windows individuels.</p>
+    </div>
+  </div>
 </section>
 
 <section id="licence">
