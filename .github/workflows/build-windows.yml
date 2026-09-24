@@ -30,7 +30,7 @@ jobs:
           cd c
           for f in ../exemples/*.elg; do
             echo "--- $f ---"
-            printf "Alice\n25\n" | ./easy_language "$f"
+            printf "Alice\n25\n" | ./easylang "$f"
           done
 
       - name: Cross-compiler pour Windows (interpreteur + debogueur + editeur)
@@ -39,7 +39,7 @@ jobs:
       - name: Preparer le paquet de distribution
         run: |
           mkdir -p dist_windows
-          cp c/easy_language.exe c/easy_debogueur.exe c/easy_editeur.exe dist_windows/
+          cp c/easylang.exe c/easy_debogueur.exe c/easy_editeur.exe dist_windows/
           cp packaging/icone.ico packaging/associer_fichiers.ps1 packaging/associer_fichiers.bat dist_windows/
           cp -r exemples dist_windows/
           cp -r bibliotheque dist_windows/
@@ -52,7 +52,7 @@ jobs:
           name: easy-language-windows
           path: |
             EasyLanguage-windows.zip
-            c/easy_language.exe
+            c/easylang.exe
             c/easy_debogueur.exe
             c/easy_editeur.exe
 
@@ -62,7 +62,7 @@ jobs:
         with:
           files: |
             EasyLanguage-windows.zip
-            c/easy_language.exe
+            c/easylang.exe
             c/easy_debogueur.exe
             c/easy_editeur.exe
 

@@ -50,9 +50,9 @@ static ResultatExecution executer_script_impl(const char *source, const char *en
 
     char commande[1200];
     if (entree) {
-        snprintf(commande, sizeof(commande), "../easy_language '%s' < '%s' 2>&1", chemin_script, chemin_entree);
+        snprintf(commande, sizeof(commande), "../easylang '%s' < '%s' 2>&1", chemin_script, chemin_entree);
     } else {
-        snprintf(commande, sizeof(commande), "../easy_language '%s' < /dev/null 2>&1", chemin_script);
+        snprintf(commande, sizeof(commande), "../easylang '%s' < /dev/null 2>&1", chemin_script);
     }
 
     FILE *p = popen(commande, "r");

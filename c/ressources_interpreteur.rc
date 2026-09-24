@@ -19,9 +19,9 @@ BEGIN
             VALUE "CompanyName", "AE Corporation"
             VALUE "FileDescription", "Easy Language - Interpreteur"
             VALUE "FileVersion", "1.0.1.0"
-            VALUE "InternalName", "easy_language"
+            VALUE "InternalName", "easylang"
             VALUE "LegalCopyright", "Copyright (C) 2026 Abiye Enzo. Tous droits reserves."
-            VALUE "OriginalFilename", "easy_language.exe"
+            VALUE "OriginalFilename", "easylang.exe"
             VALUE "ProductName", "Easy Language"
             VALUE "ProductVersion", "1.0.1.0"
         END

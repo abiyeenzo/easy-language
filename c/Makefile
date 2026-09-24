@@ -18,9 +18,9 @@ WINLIBS = -lws2_32 -luser32
 
 all: linux
 
-linux: easy_language easy_debogueur
+linux: easylang easy_debogueur
 
-easy_language: main.c $(SRC_COMMUNS)
+easylang: main.c $(SRC_COMMUNS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 easy_debogueur: debogueur_main.c debogueur.c $(SRC_COMMUNS)
@@ -31,7 +31,7 @@ easy_debogueur: debogueur_main.c debogueur.c $(SRC_COMMUNS)
 # metadonnees d'auteur (societe, copyright) via leur propre ressource .rc,
 # visibles dans l'Explorateur (icone) et l'onglet Details des proprietes du
 # fichier (auteur/copyright).
-windows: easy_language.exe easy_debogueur.exe easy_editeur.exe
+windows: easylang.exe easy_debogueur.exe easy_editeur.exe
 
 ressources_interpreteur.o: ressources_interpreteur.rc ressources.h ../packaging/icone.ico
 	$(WINDRES) -o $@ ressources_interpreteur.rc
@@ -42,7 +42,7 @@ ressources_debogueur.o: ressources_debogueur.rc ressources.h ../packaging/icone.
 ressources_editeur.o: ressources_editeur.rc ressources.h ../packaging/icone.ico
 	$(WINDRES) -o $@ ressources_editeur.rc
 
-easy_language.exe: main.c $(SRC_COMMUNS) ressources_interpreteur.o
+easylang.exe: main.c $(SRC_COMMUNS) ressources_interpreteur.o
 	$(WINCC) $(CFLAGS) -o $@ main.c $(SRC_COMMUNS) ressources_interpreteur.o $(LDFLAGS) $(WINLIBS)
 
 easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o
@@ -51,10 +51,10 @@ easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debog
 easy_editeur.exe: editeur.c ressources_editeur.o
 	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ editeur.c ressources_editeur.o -lcomctl32 -lcomdlg32 -lgdi32 -luser32 -lkernel32 -lwinhttp -lshell32
 
-tests: easy_language easy_debogueur
+tests: easylang easy_debogueur
 	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/test_natifs.c tests/test_texte_temps.c tests/test_import_systeme.c tests/aide.c
 	cd tests && ./executer_tests
 
 clean:
-	rm -f easy_language easy_language.exe easy_debogueur easy_debogueur.exe easy_editeur.exe *.o
+	rm -f easylang easylang.exe easy_debogueur easy_debogueur.exe easy_editeur.exe *.o
 	rm -f tests/executer_tests

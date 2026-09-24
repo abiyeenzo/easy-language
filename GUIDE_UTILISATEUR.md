@@ -18,7 +18,7 @@ depot GitHub :
   suivez l'assistant. Aucun droit administrateur necessaire. Il cree le
   raccourci **Easy Language - Editeur** (Bureau + menu Demarrer),
   associe les fichiers `.elg` au logo et a l'editeur, et propose
-  d'ajouter Easy Language au `PATH` (pour utiliser `easy_language` /
+  d'ajouter Easy Language au `PATH` (pour utiliser `easylang` /
   `easy_debogueur` depuis l'invite de commandes). Une desinstallation
   standard est disponible dans les parametres Windows.
 - **`EasyLanguage-windows.zip`** (portable) : extrayez le zip ou vous
@@ -33,7 +33,7 @@ Si vous avez coche l'option pendant l'installation, ouvrez une
 voient pas le changement) et tapez :
 
 ```
-easy_language mon_script.elg
+easylang mon_script.elg
 easy_debogueur mon_script.elg
 ```
 
@@ -113,7 +113,7 @@ qui fonctionnent deja : ouvrez-les depuis l'editeur pour vous en inspirer.
 ## Verifier votre version
 
 Menu **Aide > A propos** dans l'editeur, ou en ligne de commande :
-`easy_language.exe --version`. La liste des changements par version est
+`easylang.exe --version`. La liste des changements par version est
 dans `CHANGELOG.md`.
 
 ## Besoin d'aide ?

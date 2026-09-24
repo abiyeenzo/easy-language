@@ -13,7 +13,7 @@ Le workflow `.github/workflows/build-windows.yml` tourne sur
 l'interpreteur natif (Linux), puis cross-compile les trois executables
 Windows :
 
-- `easy_language.exe` (interpreteur, ligne de commande)
+- `easylang.exe` (interpreteur, ligne de commande)
 - `easy_debogueur.exe` (debogueur pas-a-pas, ligne de commande)
 - `easy_editeur.exe` (editeur graphique Win32)
 
@@ -25,7 +25,7 @@ Setup via l'action `Minionguyjpro/Inno-Setup-Action`) recupere ces `.exe`
 et compile `packaging/installateur.iss` en un installateur unique
 `EasyLanguage-installateur.exe` : menu Demarrer, raccourci Bureau
 optionnel, association `.elg` (icone + ouverture dans l'editeur), et
-ajout optionnel au `PATH` utilisateur pour utiliser `easy_language` /
+ajout optionnel au `PATH` utilisateur pour utiliser `easylang` /
 `easy_debogueur` depuis n'importe quel `cmd`/PowerShell. Aucun droit
 administrateur requis (installation dans le profil utilisateur).
 
@@ -48,7 +48,7 @@ cd c
 make windows
 ```
 
-Resultats : `c/easy_language.exe`, `c/easy_debogueur.exe`,
+Resultats : `c/easylang.exe`, `c/easy_debogueur.exe`,
 `c/easy_editeur.exe`. Les trois doivent rester dans le meme dossier :
 l'editeur lance les deux autres via `CreateProcess` en supposant qu'ils
 sont a cote de lui.
@@ -72,7 +72,7 @@ Resultat : `dist_installateur/EasyLanguage-installateur.exe`.
 ```
 cd c
 make linux
-./easy_language ../exemples/bonjour.elg
+./easylang ../exemples/bonjour.elg
 ./easy_debogueur ../exemples/fibonacci.elg 5
 ```
 

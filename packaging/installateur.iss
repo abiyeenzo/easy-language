@@ -1,7 +1,7 @@
 ; Script Inno Setup pour Easy Language.
 ; Compilation : ISCC installateur.iss  (depuis Windows, ou via l'action
 ; GitHub Actions Minionguyjpro/Inno-Setup-Action sur un runner windows-latest).
-; Suppose que c\easy_language.exe, c\easy_debogueur.exe et c\easy_editeur.exe
+; Suppose que c\easylang.exe, c\easy_debogueur.exe et c\easy_editeur.exe
 ; sont deja compiles (cf. packaging/README.md, cible "make windows").
 
 #define MyAppName "Easy Language"
@@ -39,10 +39,17 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Creer un raccourci sur le Bureau"; GroupDescription: "Raccourcis supplementaires :"
-Name: "envpath"; Description: "Ajouter Easy Language au PATH (utiliser easy_language / easy_debogueur depuis l'invite de commandes)"; GroupDescription: "Options :"; Flags: checkedonce
+Name: "envpath"; Description: "Ajouter Easy Language au PATH (utiliser easylang / easy_debogueur depuis l'invite de commandes)"; GroupDescription: "Options :"; Flags: checkedonce
+
+; Nettoie l'ancien nom de l'interpreteur (easy_language.exe, renomme en
+; easylang.exe) lors d'une mise a jour depuis une version anterieure ;
+; sans quoi Inno Setup laisserait ce fichier orphelin sur le disque, ne
+; faisant plus partie du manifeste [Files] actuel.
+[InstallDelete]
+Type: files; Name: "{app}\easy_language.exe"
 
 [Files]
-Source: "..\c\easy_language.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\c\easylang.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\c\easy_debogueur.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\c\easy_editeur.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icone.ico"; DestDir: "{app}"; Flags: ignoreversion

@@ -360,7 +360,7 @@ static void test_numero_ligne_correct_apres_lignes_vides(void) {
 /* --- version --- */
 
 static void test_version(void) {
-    FILE *p = popen("../easy_language --version 2>&1", "r");
+    FILE *p = popen("../easylang --version 2>&1", "r");
     char tampon[128] = {0};
     fread(tampon, 1, sizeof(tampon) - 1, p);
     pclose(p);

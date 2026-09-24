@@ -78,7 +78,7 @@ static void test_import_systeme_chemin_toujours_accepte(void) {
 static char *lancer_cli(const char *arguments) {
     static char tampon[4096];
     char commande[256];
-    snprintf(commande, sizeof(commande), "../easy_language %s 2>&1", arguments);
+    snprintf(commande, sizeof(commande), "../easylang %s 2>&1", arguments);
     FILE *p = popen(commande, "r");
     size_t lu = fread(tampon, 1, sizeof(tampon) - 1, p);
     tampon[lu] = '\0';

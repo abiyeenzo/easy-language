@@ -6,7 +6,7 @@
    - Edition avec coloration syntaxique basique (mots-cles, chaines,
      nombres, commentaires) via RichEdit + EM_SETCHARFORMAT.
    - Ouvrir / Enregistrer / Enregistrer sous.
-   - F5 Lancer: sauvegarde le fichier, lance easy_language.exe (suppose
+   - F5 Lancer: sauvegarde le fichier, lance easylang.exe (suppose
      installe a cote de cet executable) via CreateProcess avec des pipes
      pour recuperer stdout/stderr et fournir une entree standard preecrite.
    - F6 Deboguer: meme principe avec easy_debogueur.exe, mais le pipe
@@ -739,7 +739,7 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
             enregistrer_fichier();
             mettre_a_jour_titre(hwnd);
             effacer_sortie();
-            lancer_processus(L"easy_language.exe", NULL, FALSE);
+            lancer_processus(L"easylang.exe", NULL, FALSE);
             break;
         case ID_MENU_DEBOGUER:
             if (g_chemin_fichier[0] == L'\0' && !enregistrer_sous()) break;

@@ -4,6 +4,17 @@ Toutes les versions notables du projet sont documentees ici.
 
 ## [1.0.6] - 2026-09-24
 
+### Change
+- L'interpreteur en ligne de commande est renomme `easy_language`(`.exe`)
+  -> `easylang`(`.exe`), pour une commande plus courte a taper une fois
+  installe et ajoute au `PATH`. Seul l'interpreteur est renomme ; le
+  debogueur (`easy_debogueur`) et l'editeur (`easy_editeur`) gardent
+  leur nom. Toutes les references (Makefile, CI, installateur, README,
+  guide utilisateur, site) sont mises a jour ; une installation
+  existante d'une version anterieure devra etre remplacee (l'installateur
+  desinstalle proprement l'ancienne version avant d'installer la
+  nouvelle).
+
 ### Ajoute
 - Module standard `texte` (`bibliotheque/texte.elg`, natif
   `c/natifs_texte.c`) : decouper (split), joindre (join), remplacer,
@@ -33,7 +44,7 @@ Toutes les versions notables du projet sont documentees ici.
   page du depot en developpement). La forme historique par chemin
   (`importe "chemin.elg"`) continue de fonctionner a l'identique, pour
   les fichiers de l'utilisateur.
-- `easy_language` (ligne de commande) : lance sans argument, affiche
+- `easylang` (ligne de commande) : lance sans argument, affiche
   desormais un ecran d'aide au lieu d'une erreur ; `--aide`/`--help`/
   `-h` pour l'usage, `--aide modules` (ou `--modules`) pour lister les
   modules de la bibliotheque standard disponibles avec une courte

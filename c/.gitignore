@@ -1,6 +1,6 @@
 *.o
-easy_language
-easy_language.exe
+easylang
+easylang.exe
 easy_debogueur
 easy_debogueur.exe
 easy_editeur

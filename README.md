@@ -16,7 +16,7 @@ délimités par indentation (comme en Python), après un `:`.
 
 ```
 cd c
-make linux     # easy_language, easy_debogueur (pour developper/tester ici)
+make linux     # easylang, easy_debogueur (pour developper/tester ici)
 make windows   # + easy_editeur.exe, via cross-compilation mingw-w64
 ```
 
@@ -31,7 +31,7 @@ make tests
 ```
 
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
-binaire `easy_language`/`easy_debogueur` compile comme boite noire (le
+binaire `easylang`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
 158 verifications : variables, boucles, fonctions, listes, erreurs, entree
 standard, debogueur, bibliotheque standard (math/os/reseau/gui/texte/temps,
@@ -41,10 +41,10 @@ test lui-meme).
 ## Utilisation
 
 ```
-c/easy_language exemples/bonjour.elg
-c/easy_language --version
-c/easy_language --aide              # usage, ou lancé sans argument
-c/easy_language --aide modules      # modules de la bibliotheque standard disponibles
+c/easylang exemples/bonjour.elg
+c/easylang --version
+c/easylang --aide              # usage, ou lancé sans argument
+c/easylang --aide modules      # modules de la bibliotheque standard disponibles
 ```
 
 ## Editeur et debogueur
@@ -58,7 +58,7 @@ Commandes du debogueur : `n` (suivant), `c` (continuer), `ba <ligne>` /
 
 L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
 (RichEdit pour la coloration syntaxique, `CreateProcess`/pipes pour
-lancer `easy_language.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
+lancer `easylang.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
 déboguer, Ctrl+F = rechercher. Une barre d'outils (Nouveau, Ouvrir,
 Enregistrer, Lancer, Déboguer, Rechercher) et une barre d'état (état de
 l'exécution en cours, ligne/colonne du curseur) complètent le menu. Il
@@ -226,7 +226,7 @@ dossier depuis lequel le script est lancé (contrairement à `importe
 "chemin.elg"`, résolu relativement au script). Un alias reste possible
 (`importe math comme m`). Importer un nom qui n'existe pas dans la
 bibliothèque standard donne une erreur claire listant les modules
-disponibles ; la liste est aussi accessible via `easy_language --aide
+disponibles ; la liste est aussi accessible via `easylang --aide
 modules` (voir [Utilisation](#utilisation)).
 
 Ce mécanisme est réservé aux six modules ci-dessous. Pour importer votre
@@ -347,7 +347,7 @@ tree-walking : un chantier plus consequent que les deux ci-dessus.
 ## Distribution sous Windows
 
 Aucune dépendance à installer sur la machine cible : les trois `.exe`
-(`easy_language.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
+(`easylang.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
 dépendent que de DLL systeme presentes par defaut sur Windows
 (`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`, `comctl32` pour la
 barre d'outils/d'état de l'éditeur, `ws2_32` pour le reseau). Voir

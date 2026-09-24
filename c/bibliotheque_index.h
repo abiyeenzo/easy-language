@@ -10,7 +10,7 @@ typedef struct {
    a cote de l'executable, cf. util.h:obtenir_dossier_executable). Source
    unique utilisee a la fois pour resoudre "importe nom" (sans chemin,
    voir interpreteur.c) et pour lister les modules disponibles depuis la
-   ligne de commande (easy_language --aide modules, voir main.c). */
+   ligne de commande (easylang --aide modules, voir main.c). */
 extern const EntreeBibliotheque BIBLIOTHEQUE_INDEX[];
 extern const int BIBLIOTHEQUE_INDEX_COMPTE;
 
