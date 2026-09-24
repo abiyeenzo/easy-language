@@ -9,6 +9,7 @@
 
 #include "analyseur.h"
 #include "lexer.h"
+#include "bibliotheque_index.h"
 #include "natifs_gui.h"
 #include "natifs_math.h"
 #include "natifs_os.h"
@@ -245,6 +246,35 @@ static int est_native(const char *nom) {
     return 0;
 }
 
+/* Auquel des groupes de fonctions natives un nom d'appel appartient (ou
+   aucun : fonction utilisateur). Cette appartenance ne depend que du texte
+   du nom, jamais de l'etat d'execution, donc le resultat est mis en cache
+   sur le noeud d'appel (cache_natif) plutot que rescanne a chaque appel :
+   voir le cas N_APPEL plus bas, qui est le chemin le plus chaud de tout
+   l'interpreteur sur du code recursif (des millions d'appels peuvent
+   partager le meme noeud d'appel). */
+typedef enum {
+    NATIF_AUCUN = 0,
+    NATIF_CORE,
+    NATIF_MATH,
+    NATIF_OS,
+    NATIF_RESEAU,
+    NATIF_GUI,
+    NATIF_TEXTE,
+    NATIF_TEMPS,
+} NatifCache;
+
+static NatifCache resoudre_natif(const char *nom) {
+    if (est_native(nom)) return NATIF_CORE;
+    if (natifs_math_est(nom)) return NATIF_MATH;
+    if (natifs_os_est(nom)) return NATIF_OS;
+    if (natifs_reseau_est(nom)) return NATIF_RESEAU;
+    if (natifs_gui_est(nom)) return NATIF_GUI;
+    if (natifs_texte_est(nom)) return NATIF_TEXTE;
+    if (natifs_temps_est(nom)) return NATIF_TEMPS;
+    return NATIF_AUCUN;
+}
+
 /* ------------------------------------------------------------------ */
 /* evaluation d'expressions                                           */
 
@@ -349,7 +379,7 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
 
         case N_VARIABLE: {
             Valeur v;
-            if (!environnement_obtenir(env, n->nom, &v)) {
+            if (!environnement_obtenir_cache(env, n->nom, &n->cache_niveau, &n->cache_indice, &v)) {
                 char msg[160];
                 snprintf(msg, sizeof(msg), "variable inconnue: '%s'", n->nom);
                 erreur_execution(n->ligne, msg);
@@ -399,16 +429,21 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
             if (nb > 64) erreur_execution(n->ligne, "trop d'arguments");
             for (int i = 0; i < nb; i++) args[i] = evaluer(n->enfants[i], env);
 
-            if (est_native(n->nom)) return appeler_native(n->nom, args, nb, n->ligne);
-            if (natifs_math_est(n->nom)) return natifs_math_appeler(n->nom, args, nb, n->ligne);
-            if (natifs_os_est(n->nom)) return natifs_os_appeler(n->nom, args, nb, n->ligne);
-            if (natifs_reseau_est(n->nom)) return natifs_reseau_appeler(n->nom, args, nb, n->ligne);
-            if (natifs_gui_est(n->nom)) return natifs_gui_appeler(n->nom, args, nb, n->ligne);
-            if (natifs_texte_est(n->nom)) return natifs_texte_appeler(n->nom, args, nb, n->ligne);
-            if (natifs_temps_est(n->nom)) return natifs_temps_appeler(n->nom, args, nb, n->ligne);
+            if (n->cache_natif < 0) n->cache_natif = resoudre_natif(n->nom);
+
+            switch ((NatifCache)n->cache_natif) {
+                case NATIF_CORE: return appeler_native(n->nom, args, nb, n->ligne);
+                case NATIF_MATH: return natifs_math_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_OS: return natifs_os_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_RESEAU: return natifs_reseau_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_GUI: return natifs_gui_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_TEXTE: return natifs_texte_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_TEMPS: return natifs_temps_appeler(n->nom, args, nb, n->ligne);
+                case NATIF_AUCUN: break;
+            }
 
             Valeur cible;
-            if (!environnement_obtenir(env, n->nom, &cible)) {
+            if (!environnement_obtenir_cache(env, n->nom, &n->cache_niveau, &n->cache_indice, &cible)) {
                 char msg[160];
                 snprintf(msg, sizeof(msg), "variable inconnue: '%s'", n->nom);
                 erreur_execution(n->ligne, msg);
@@ -460,18 +495,67 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
     }
 }
 
+/* Dossier contenant l'executable en cours (pas le script), calcule une
+   seule fois : sert de point de depart pour localiser la bibliotheque
+   standard, independamment de l'endroit d'ou le script est lance. */
+static const char *dossier_executable_cache(void) {
+    static char dossier[4096] = "";
+    static int calcule = 0;
+    if (!calcule) {
+        obtenir_dossier_executable(dossier, sizeof(dossier));
+        calcule = 1;
+    }
+    return dossier;
+}
+
+/* Resout "importe nom" (sans chemin) vers le fichier .elg correspondant
+   de la bibliotheque standard. Essaie d'abord bibliotheque/ juste a cote
+   de l'executable (mise en page de la distribution : zip portable,
+   installateur, ou dist_windows/ genere par la CI), puis un niveau
+   au-dessus (mise en page du depot en developpement : les executables
+   sont compiles dans c/, bibliotheque/ est a la racine du depot).
+   snprintf tronque proprement (toujours termine par '\0') si un chemin
+   depasse 4096 caracteres ; GCC ne peut pas le prouver statiquement d'ou
+   l'avertissement desactive ici localement (meme situation que
+   joindre_chemin plus haut). */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+static void resoudre_bibliotheque_systeme(char *dehors, size_t taille, const char *nom) {
+    const char *dossier_exe = dossier_executable_cache();
+    snprintf(dehors, taille, "%s/bibliotheque/%s.elg", dossier_exe, nom);
+    FILE *test = fopen(dehors, "rb");
+    if (test) { fclose(test); return; }
+    snprintf(dehors, taille, "%s/../bibliotheque/%s.elg", dossier_exe, nom);
+}
+
 static void executer_importation(Noeud *n, Environnement *env) {
     char chemin_absolu[4096];
-    joindre_chemin(chemin_absolu, sizeof(chemin_absolu), g_dossier_actuel, n->texte);
+    if (n->importation_systeme) {
+        if (!bibliotheque_index_connu(n->texte)) {
+            char msg[350];
+            snprintf(msg, sizeof(msg),
+                "bibliotheque standard inconnue: '%s' (disponibles: math, os, reseau, gui, texte, temps)",
+                n->texte);
+            erreur_execution(n->ligne, msg);
+        }
+        resoudre_bibliotheque_systeme(chemin_absolu, sizeof(chemin_absolu), n->texte);
+    } else {
+        joindre_chemin(chemin_absolu, sizeof(chemin_absolu), g_dossier_actuel, n->texte);
+    }
 
-    char alias_calcule[256];
     const char *alias = n->nom;
     if (!alias) {
         const char *sep1 = strrchr(n->texte, '/');
         const char *sep2 = strrchr(n->texte, '\\');
         const char *base = (sep2 && (!sep1 || sep2 > sep1)) ? sep2 : sep1;
         base = base ? base + 1 : n->texte;
-        snprintf(alias_calcule, sizeof(alias_calcule), "%s", base);
+        /* environnement_definir n'accepte plus que des chaines qui vivent
+           aussi longtemps que le programme (elle emprunte le pointeur au
+           lieu de le dupliquer, voir environnement.c) : un tampon de pile
+           ici serait une pendaison de pointeur des le retour de cette
+           fonction. alias_calcule est donc alloue sur le tas (jamais
+           libere, comme le reste du projet, cf. valeur.h). */
+        char *alias_calcule = strdup(base);
         char *point = strrchr(alias_calcule, '.');
         if (point) *point = '\0';
         alias = alias_calcule;
@@ -528,6 +612,7 @@ static void executer_importation(Noeud *n, Environnement *env) {
     enregistrer_module(chemin_absolu, v);
     environnement_definir(env, alias, v);
 }
+#pragma GCC diagnostic pop
 
 /* ------------------------------------------------------------------ */
 /* execution d'instructions                                           */
@@ -546,7 +631,7 @@ static Resultat executer_instruction(Noeud *n, Environnement *env) {
             return resultat_normal();
 
         case N_AFFECTATION:
-            if (!environnement_assigner(env, n->nom, evaluer(n->expression, env))) {
+            if (!environnement_assigner_cache(env, n->nom, &n->cache_niveau, &n->cache_indice, evaluer(n->expression, env))) {
                 char msg[160];
                 snprintf(msg, sizeof(msg), "impossible d'assigner, variable non declaree: '%s'", n->nom);
                 erreur_execution(n->ligne, msg);

@@ -43,6 +43,8 @@ test lui-meme).
 ```
 c/easy_language exemples/bonjour.elg
 c/easy_language --version
+c/easy_language --aide              # usage, ou lancé sans argument
+c/easy_language --aide modules      # modules de la bibliotheque standard disponibles
 ```
 
 ## Editeur et debogueur
@@ -59,8 +61,13 @@ L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
 lancer `easy_language.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
 déboguer, Ctrl+F = rechercher. Une barre d'outils (Nouveau, Ouvrir,
 Enregistrer, Lancer, Déboguer, Rechercher) et une barre d'état (état de
-l'exécution en cours, ligne/colonne du curseur) complètent le menu. Il ne
-se compile que pour Windows et doit rester dans le même dossier que les
+l'exécution en cours, ligne/colonne du curseur) complètent le menu. Il
+vérifie automatiquement (via l'API GitHub Releases, en tâche de fond, au
+démarrage) si une nouvelle version est disponible, et propose d'ouvrir la
+page de téléchargement le cas échéant (menu Aide > Vérifier les mises à
+jour pour relancer la vérification manuellement) ; aucun téléchargement
+ni exécution automatique, l'utilisateur choisit toujours. Il ne se
+compile que pour Windows et doit rester dans le même dossier que les
 deux autres `.exe`.
 
 Les trois `.exe` embarquent le logo du langage (`packaging/icone.ico`,
@@ -192,15 +199,18 @@ boucler indéfiniment.
 Le dossier [`bibliotheque/`](bibliotheque/) contient un petit équivalent
 des modules `math`, `os` et `socket` de Python (plus des boîtes de
 dialogue simples), sous forme de fichiers `.elg` important les fonctions
-natives correspondantes (implémentées en C dans `c/natifs_*.c`) :
+natives correspondantes (implémentées en C dans `c/natifs_*.c`).
+
+Ces modules-là s'importent **sans chemin**, par leur simple nom (comme
+`import math` en Python) :
 
 ```
-importe "bibliotheque/math.elg" comme math
-importe "bibliotheque/os.elg" comme os
-importe "bibliotheque/reseau.elg" comme reseau
-importe "bibliotheque/gui.elg" comme gui
-importe "bibliotheque/texte.elg" comme texte
-importe "bibliotheque/temps.elg" comme temps
+importe math
+importe os
+importe reseau
+importe gui
+importe texte
+importe temps
 
 affiche math.racine(2)
 affiche os.fichier_existe("notes.txt")
@@ -209,6 +219,20 @@ gui.message("Titre" "Un message")
 affiche texte.majuscules("bonjour")
 affiche temps.formater(temps.maintenant() "%Y-%m-%d")
 ```
+
+`importe <nom>` (identifiant nu, sans guillemets) est résolu contre le
+dossier `bibliotheque/` fourni à côté de l'exécutable, quel que soit le
+dossier depuis lequel le script est lancé (contrairement à `importe
+"chemin.elg"`, résolu relativement au script). Un alias reste possible
+(`importe math comme m`). Importer un nom qui n'existe pas dans la
+bibliothèque standard donne une erreur claire listant les modules
+disponibles ; la liste est aussi accessible via `easy_language --aide
+modules` (voir [Utilisation](#utilisation)).
+
+Ce mécanisme est réservé aux six modules ci-dessous. Pour importer votre
+propre fichier `.elg` (les vôtres, ou ceux de quelqu'un d'autre), la
+syntaxe historique par chemin continue de fonctionner exactement comme
+avant (voir [Modules](#modules) plus haut) : `importe "chemin.elg"`.
 
 - **`math`** : `racine`, `puissance`, `sin`, `cos`, `tan`, `abs`,
   `plancher`, `plafond`, `arrondi`, `log`, `exp`, `alea`, `alea_entier`,
@@ -275,33 +299,50 @@ entiere (`+ - * -unaire`) ne font que documenter une integration ASM
 reelle sur le chemin le plus emprunte, un `-O2` C fait deja aussi bien
 sur des operations aussi simples.
 
-**Face a du vrai CPython** (3.13), sur le meme `fib(30)` : CPython reste
-plus rapide sur ce test precis (~0.7s pour Easy Language contre ~0.09s
-pour CPython, sur cette machine de developpement). Sur une boucle simple
-sans appel de fonction (20 millions d'iterations), l'ecart est plus
-faible (~1.8s contre ~1.4s). La raison : Easy Language est un
-interpreteur "tree-walking" (il evalue directement l'arbre syntaxique a
-chaque execution) alors que CPython compile en bytecode et beneficie de
-plusieurs decennies d'optimisation de sa boucle d'evaluation ; de plus,
-chaque acces a une variable parcourt la chaine des portees parentes avec
-une comparaison de chaines, ce qui coute cher sur du code recursif avec
-beaucoup d'appels. La v1.0.6 a supprime l'essentiel du cout de gestion
-memoire par appel de fonction (voir plus bas), mais ce cout de recherche
-de variable reste la limite actuelle face a CPython sur ce genre de
-charge. Honnetement : plus rapide que notre propre passe, pas encore plus
-rapide que du vrai Python sur tous les cas.
+**Face a du vrai CPython** (3.13), sur `fib(30)` recursif (mesures sur
+cette machine de developpement, a prendre comme un ordre de grandeur) :
 
-**v1.0.6 : reutilisation des environnements.** Chaque appel de fonction
-ou entree de bloc (`si`, boucle) allouait et liberait un nouvel
-environnement (jusqu'a 4 `malloc`/`free` par appel), un cout qui dominait
-le temps d'execution sur du code recursif (visible en temps systeme :
-plus de la moitie du temps total sur `fib(30)`). Les environnements sont
-maintenant recycles via une pile de reutilisation au lieu d'etre
-liberes/realloues a chaque fois, et les noms de variables ne sont plus
-dupliques (ils vivent deja aussi longtemps que le programme, dans
-l'arbre syntaxique). Resultat : temps systeme quasi nul, et ~35% plus
-rapide au total sur `fib(30)`, sans changement de comportement (158
-tests toujours au vert).
+| Version | fib(30) | Boucle simple (20M iterations) |
+|---|---|---|
+| Avant optimisation | ~1.0-1.2s | ~2.5s |
+| Apres reutilisation des environnements | ~0.7s | ~1.8s |
+| Apres cache de resolution (appels + variables) | **~0.22s** | **~1.5s** |
+| CPython 3.13 (reference) | ~0.09s | ~1.4s |
+
+Sur la boucle simple, on est desormais dans le bruit de mesure par
+rapport a CPython. Sur `fib(30)`, l'ecart est tombe d'environ 8-10x a
+environ 2.5x. Honnetement : toujours plus lent que du vrai CPython sur
+de la recursion intensive, mais l'ecart s'est nettement resserre, sans
+rien casser (158 tests toujours au vert a chaque etape).
+
+Deux optimisations ont fait le gros du travail :
+
+- **Reutilisation des environnements.** Chaque appel de fonction ou
+  entree de bloc (`si`, boucle) allouait et liberait un nouvel
+  environnement (jusqu'a 4 `malloc`/`free` par appel), un cout qui
+  dominait le temps d'execution sur du code recursif (visible en temps
+  systeme). Les environnements sont maintenant recycles via une pile de
+  reutilisation, et les noms de variables ne sont plus dupliques (ils
+  vivent deja aussi longtemps que le programme, dans l'arbre syntaxique).
+- **Cache de resolution sur les noeuds de l'arbre syntaxique.** Chaque
+  appel de fonction verifiait d'abord si le nom appelait une fonction
+  native, en parcourant sequentiellement toutes les tables de fonctions
+  natives (jusqu'a une soixantaine de comparaisons de chaines) avant de
+  chercher une fonction utilisateur : sur une fonction recursive comme
+  `fib`, ce parcours se repetait des millions de fois pour le meme site
+  d'appel, en pure perte. De meme, chaque acces a une variable remontait
+  la chaine des portees parentes avec une comparaison de chaines a
+  chaque niveau. Comme ces deux resolutions ne dependent que du code
+  (jamais de l'etat d'execution), leur resultat est maintenant mis en
+  cache directement sur le noeud d'AST concerne des la premiere
+  execution, et reutilise ensuite sans reparcourir quoi que ce soit.
+  Le cache est invalide-safe : toute incoherence retombe automatiquement
+  sur la recherche complete plutot que de retourner un mauvais resultat.
+
+La prochaine vraie piste pour aller plus loin serait de resoudre les
+variables a des emplacements fixes au moment du parsing plutot qu'a la
+premiere execution, ou de passer a un modele par bytecode plutot que
+tree-walking : un chantier plus consequent que les deux ci-dessus.
 
 ## Distribution sous Windows
 

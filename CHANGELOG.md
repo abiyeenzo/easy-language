@@ -18,17 +18,69 @@ Toutes les versions notables du projet sont documentees ici.
   Lancer, Deboguer, Rechercher), barre d'etat (etat de l'execution en
   cours, position ligne/colonne du curseur), recherche de texte
   (Ctrl+F, boite de dialogue standard Windows).
-- 22 nouveaux tests (`c/tests/test_texte_temps.c`) : 158 au total.
+- Editeur graphique : verification automatique des mises a jour (API
+  GitHub Releases, en tache de fond au demarrage, sans bloquer
+  l'interface). Si une version plus recente existe, propose d'ouvrir la
+  page de telechargement (aucun telechargement ni execution automatique,
+  toujours a la demande de l'utilisateur). Menu Aide > "Verifier les
+  mises a jour" pour relancer la verification manuellement.
+- `importe <nom>` (identifiant nu, sans guillemets) pour la bibliotheque
+  standard : `importe math`, `importe os`, `importe reseau`, `importe
+  gui`, `importe texte`, `importe temps`, avec ou sans alias (`importe
+  math comme m`). Resolu contre le dossier `bibliotheque/` fourni a cote
+  de l'executable, quel que soit le dossier d'ou le script est lance
+  (avec repli sur `bibliotheque/` un niveau au-dessus pour la mise en
+  page du depot en developpement). La forme historique par chemin
+  (`importe "chemin.elg"`) continue de fonctionner a l'identique, pour
+  les fichiers de l'utilisateur.
+- `easy_language` (ligne de commande) : lance sans argument, affiche
+  desormais un ecran d'aide au lieu d'une erreur ; `--aide`/`--help`/
+  `-h` pour l'usage, `--aide modules` (ou `--modules`) pour lister les
+  modules de la bibliotheque standard disponibles avec une courte
+  description de chacun.
+- 40 nouveaux tests (`c/tests/test_texte_temps.c`,
+  `c/tests/test_import_systeme.c`) : 178 au total.
 
 ### Ameliore
 - Reutilisation des `Environnement` (bloc/boucle/appel de fonction) via
   une pile de recyclage au lieu d'un `malloc`/`free` a chaque fois, et
   arret de la duplication des noms de variables (ils vivent deja aussi
-  longtemps que le programme, dans l'arbre syntaxique). Sur `fib(30)`
-  recursif : temps systeme (malloc/free) quasi supprime, ~35% plus
-  rapide au total. Comportement inchange (158 tests toujours au vert).
+  longtemps que le programme, dans l'arbre syntaxique).
+- Cache de resolution sur les noeuds de l'arbre syntaxique, pour deux
+  chemins chauds de l'evaluateur :
+  - Chaque appel de fonction verifiait sequentiellement toutes les
+    tables de fonctions natives (jusqu'a ~60 comparaisons de chaines)
+    avant de chercher une fonction utilisateur, a chaque appel. Cette
+    appartenance "natif ou non" ne depend que du texte du nom, jamais de
+    l'etat d'execution : elle est maintenant resolue une seule fois par
+    site d'appel puis mise en cache.
+  - Chaque acces/assignation de variable remontait la chaine des
+    portees parentes avec une comparaison de chaines a chaque niveau.
+    La position d'une variable pour un noeud d'AST donne est egalement
+    stable d'une execution a l'autre : elle est maintenant mise en
+    cache (avec verification et repli automatique sur la recherche
+    complete en cas d'incoherence, jamais de resultat incorrect).
+  - Ensemble, sur `fib(30)` recursif : ~1.0-1.2s -> ~0.22s. L'ecart avec
+    CPython 3.13 sur ce test tombe d'environ 8-10x a environ 2.5x. Sur
+    une boucle simple sans appel de fonction, l'ecart devient
+    negligeable. Comportement inchange (158 tests toujours au vert, plus
+    un test de non-regression cible sur la recursion/reaffectation/
+    imbrication de portees).
+- README : tableau de mesures Performance mis a jour avec les trois
+  etapes (avant optimisation, apres reutilisation des environnements,
+  apres cache de resolution) face a CPython 3.13.
 
 ### Corrige
+- **Bug introduit plus tot dans cette meme version** (reutilisation des
+  environnements, ci-dessus) : `importe "chemin.elg"` sans `comme alias`
+  calculait l'alias par defaut dans un tampon de pile local, or
+  `environnement_definir` emprunte desormais le pointeur du nom au lieu
+  de le dupliquer. Un deuxieme `importe` sans alias reutilisait cette
+  meme pile et corrompait silencieusement le nom du premier module deja
+  lie (pointeur pendouillant), rendant son acces (`module.quelquechose`)
+  impossible ensuite. Corrige en allouant cet alias par defaut sur le
+  tas ; couvert par un test de non-regression dedie
+  (`test_import_systeme_deux_imports_sans_alias`).
 - La section Performance du README comparait uniquement a notre tout
   premier prototype (ecrit en Python), ce qui laissait croire a une
   victoire generale contre Python. Chiffres ajoutes face a du vrai

@@ -555,12 +555,12 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
 
   <details>
   <summary>Bibliotheque standard</summary>
-  <pre><code><span class="kw">importe</span> <span class="str">"bibliotheque/math.elg"</span> <span class="kw">comme</span> math
-<span class="kw">importe</span> <span class="str">"bibliotheque/os.elg"</span> <span class="kw">comme</span> os
+  <pre><code><span class="kw">importe</span> math
+<span class="kw">importe</span> os
 
 <span class="kw">affiche</span> math.racine(2)
 <span class="kw">affiche</span> os.fichier_existe(<span class="str">"notes.txt"</span>)</code></pre>
-  <p>Equivalent reduit des modules Python <code>math</code>, <code>os</code> et <code>socket</code>, plus des boites de dialogue simples : <code>math</code> (racine, puissance, sin/cos/tan, abs, plancher/plafond/arrondi, log/exp, alea, min/max, PI, E), <code>os</code> (fichier_existe, lire_fichier, ecrire_fichier, ajouter_fichier, supprimer_fichier, repertoire_courant, variable_environnement, horodatage, dormir), <code>reseau</code> (client TCP : connecter/envoyer/recevoir/fermer), <code>gui</code> (message/question : vraies boites Win32 sous Windows, repli console ailleurs), <code>texte</code> (decouper, joindre, remplacer, majuscules/minuscules, rogner, commence_par/finit_par, sous_texte, inverse, position, contient_texte), <code>temps</code> (maintenant, annee/mois/jour/heure/minute/seconde, jour_semaine, formater avec les codes strftime standards).</p>
+  <p><code>importe &lt;nom&gt;</code> (sans guillemets) resout un module de la bibliotheque standard, ou qu'il se trouve le script (a la difference de <code>importe "chemin.elg"</code>, reserve a vos propres fichiers). Liste aussi disponible via <code>easy_language --aide modules</code>. Equivalent reduit des modules Python <code>math</code>, <code>os</code> et <code>socket</code>, plus des boites de dialogue simples : <code>math</code> (racine, puissance, sin/cos/tan, abs, plancher/plafond/arrondi, log/exp, alea, min/max, PI, E), <code>os</code> (fichier_existe, lire_fichier, ecrire_fichier, ajouter_fichier, supprimer_fichier, repertoire_courant, variable_environnement, horodatage, dormir), <code>reseau</code> (client TCP : connecter/envoyer/recevoir/fermer), <code>gui</code> (message/question : vraies boites Win32 sous Windows, repli console ailleurs), <code>texte</code> (decouper, joindre, remplacer, majuscules/minuscules, rogner, commence_par/finit_par, sous_texte, inverse, position, contient_texte), <code>temps</code> (maintenant, annee/mois/jour/heure/minute/seconde, jour_semaine, formater avec les codes strftime standards).</p>
   </details>
 
   <details>
@@ -616,7 +616,7 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
         <span class="version-numero">v1.0.6</span>
         <span class="version-date">24 septembre 2026</span>
       </div>
-      <p>Modules standard <code>texte</code> (manipulation de chaines) et <code>temps</code> (date et heure). Editeur graphique : barre d'outils, barre d'etat (ligne/colonne, etat d'execution), recherche de texte (Ctrl+F). Reutilisation des environnements memoire (moins de malloc/free, ~35% plus rapide sur du code recursif). 22 nouveaux tests, 158 au total.</p>
+      <p>Modules standard <code>texte</code> (manipulation de chaines) et <code>temps</code> (date et heure), desormais importables sans chemin (<code>importe math</code>). Editeur graphique : barre d'outils, barre d'etat, recherche de texte (Ctrl+F), verification automatique des mises a jour. Ligne de commande : <code>--aide modules</code> pour lister la bibliotheque standard. Cache de resolution sur l'arbre syntaxique (~5x plus rapide sur du code recursif intensif, ecart avec CPython reduit de ~8-10x a ~2.5x). 178 tests au total.</p>
     </div>
     <div class="version">
       <div class="version-entete">

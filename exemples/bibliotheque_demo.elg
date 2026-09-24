@@ -1,7 +1,9 @@
 # demonstration de la bibliotheque standard (math, os, reseau, gui)
+# importe math / importe os : sans chemin, resolu a cote de l'executable
+# (fonctionne quel que soit le dossier depuis lequel ce script est lance)
 
-importe "../bibliotheque/math.elg" comme math
-importe "../bibliotheque/os.elg" comme os
+importe math
+importe os
 
 affiche "--- math ---"
 affiche "PI =" math.PI

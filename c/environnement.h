@@ -27,4 +27,13 @@ int environnement_obtenir(Environnement *env, const char *nom, Valeur *dehors);
 /* Retourne 1 si assigne (variable deja declaree quelque part dans la chaine), sinon 0. */
 int environnement_assigner(Environnement *env, const char *nom, Valeur v);
 
+/* Variantes avec cache de position (niveau, indice), a fournir par
+   l'appelant et initialiser a -1 (pas encore resolu). Voir
+   environnement.c pour le principe. A utiliser uniquement quand le meme
+   couple (niveau, indice) sera reutilise a travers plusieurs appels pour
+   le meme site dans le code (typiquement stocke sur un noeud d'AST) :
+   sinon la recherche complete est refaite a chaque fois sans gain. */
+int environnement_obtenir_cache(Environnement *env, const char *nom, int *niveau, int *indice, Valeur *dehors);
+int environnement_assigner_cache(Environnement *env, const char *nom, int *niveau, int *indice, Valeur v);
+
 #endif

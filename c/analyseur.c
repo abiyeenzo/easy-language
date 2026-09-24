@@ -16,6 +16,9 @@ static Noeud *creer_noeud(TypeNoeud type, int ligne) {
     Noeud *n = calloc(1, sizeof(Noeud));
     n->type = type;
     n->ligne = ligne;
+    n->cache_natif = -1;
+    n->cache_niveau = -1;
+    n->cache_indice = -1;
     return n;
 }
 
@@ -444,7 +447,17 @@ static Noeud *retourne(Analyseur *a) {
 
 static Noeud *importation(Analyseur *a) {
     int ligne = avancer(a).ligne;
-    char *chemin = attendre(a, T_TEXTE, "chemin de fichier (texte) attendu apres 'importe'").texte;
+
+    /* "importe nom" (identifiant nu, sans guillemets) designe un module de
+       la bibliotheque standard fournie avec l'executable ; "importe
+       "chemin.elg"" reste le mecanisme general pour importer le propre
+       fichier .elg de l'utilisateur, resolu relativement au script en
+       cours. Les deux partagent le reste de la syntaxe (comme alias). */
+    int systeme = correspond(a, T_IDENT);
+    char *chemin = systeme
+        ? avancer(a).texte
+        : attendre(a, T_TEXTE, "chemin de fichier (texte) ou nom de bibliotheque standard attendu apres 'importe'").texte;
+
     char *alias = NULL;
     if (correspond(a, T_COMME)) {
         avancer(a);
@@ -453,6 +466,7 @@ static Noeud *importation(Analyseur *a) {
     fin_instruction(a);
     Noeud *n = creer_noeud(N_IMPORTATION, ligne);
     n->texte = chemin; n->nom = alias;
+    n->importation_systeme = systeme;
     return n;
 }
 

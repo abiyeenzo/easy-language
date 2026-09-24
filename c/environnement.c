@@ -74,6 +74,49 @@ int environnement_obtenir(Environnement *env, const char *nom, Valeur *dehors) {
     return 0;
 }
 
+/* Marche comme un pas de la chaine de portees jusqu'a *niveau parents,
+   puis verifie que la variable attendue est toujours a *indice a cet
+   endroit (un seul strcmp). Retourne l'environnement trouve, ou NULL si
+   le cache n'est plus valide (jamais resolu, portee trop courte, ou nom
+   different a cette position). */
+static Environnement *suivre_cache(Environnement *env, const char *nom, int niveau, int indice) {
+    if (niveau < 0) return NULL;
+    Environnement *e = env;
+    for (int k = niveau; k > 0 && e; k--) e = e->parent;
+    if (e && indice < e->compte && strcmp(e->noms[indice], nom) == 0) return e;
+    return NULL;
+}
+
+/* Equivalent de environnement_obtenir, mais se souvient (via *niveau et
+   *indice, fournis par l'appelant et geres par un noeud d'AST donne) de
+   l'endroit ou la variable a ete trouvee la derniere fois. La position
+   d'une variable pour un noeud donne ne depend que de la structure du
+   code (jamais de l'etat d'execution), donc apres une premiere
+   resolution complete, les appels suivants n'ont plus qu'a suivre
+   *niveau portees parentes et comparer un seul nom, au lieu de reparcourir
+   toute la chaine avec une comparaison par variable a chaque niveau. Ceci
+   compte enormement sur du code recursif : la meme variable (ex: le nom
+   d'une fonction qui s'appelle elle-meme) est alors resolue des millions
+   de fois pour le meme noeud d'appel. */
+int environnement_obtenir_cache(Environnement *env, const char *nom, int *niveau, int *indice, Valeur *dehors) {
+    Environnement *e = suivre_cache(env, nom, *niveau, *indice);
+    if (e) {
+        *dehors = e->valeurs[*indice];
+        return 1;
+    }
+    int n = 0;
+    for (e = env; e != NULL; e = e->parent, n++) {
+        int idx = trouver_local(e, nom);
+        if (idx >= 0) {
+            *dehors = e->valeurs[idx];
+            *niveau = n;
+            *indice = idx;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void environnement_detruire(Environnement *env) {
     /* les noms ne sont plus dupliques (voir environnement_definir), donc
        rien a liberer a part remettre l'environnement dans la pile de
@@ -91,6 +134,27 @@ int environnement_assigner(Environnement *env, const char *nom, Valeur v) {
         int idx = trouver_local(e, nom);
         if (idx >= 0) {
             e->valeurs[idx] = v;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Equivalent cache de environnement_assigner, meme principe que
+   environnement_obtenir_cache. */
+int environnement_assigner_cache(Environnement *env, const char *nom, int *niveau, int *indice, Valeur v) {
+    Environnement *e = suivre_cache(env, nom, *niveau, *indice);
+    if (e) {
+        e->valeurs[*indice] = v;
+        return 1;
+    }
+    int n = 0;
+    for (e = env; e != NULL; e = e->parent, n++) {
+        int idx = trouver_local(e, nom);
+        if (idx >= 0) {
+            e->valeurs[idx] = v;
+            *niveau = n;
+            *indice = idx;
             return 1;
         }
     }

@@ -73,6 +73,27 @@ struct Noeud {
     /* programme */
     Noeud **instructions;
     int nb_instructions;
+
+    /* appel : cache de resolution "ce nom est-il un natif, et lequel ?"
+       (-1 = pas encore resolu, sinon une valeur de NatifCache dans
+       interpreteur.c). Le "natif-ite" d'un nom est fixe pour tout le
+       programme (ne depend d'aucun etat d'execution), donc ce cache est
+       calcule une seule fois par noeud d'appel puis reutilise, au lieu de
+       rescanner toutes les tables de fonctions natives a chaque appel. */
+    int cache_natif;
+
+    /* variable / affectation / appel (cible) : position mise en cache
+       (niveau = nombre de portees parentes a remonter, indice = position
+       dans cette portee) pour eviter de reparcourir toute la chaine de
+       portees a chaque evaluation. -1 = pas encore resolu. Voir
+       environnement_obtenir_cache/environnement_assigner_cache. */
+    int cache_niveau;
+    int cache_indice;
+
+    /* importation : 1 si "importe nom" (sans chemin, bibliotheque standard
+       fournie avec l'executable), 0 si "importe "chemin.elg"" (fichier de
+       l'utilisateur, resolu relativement au script). */
+    int importation_systeme;
 };
 
 #endif

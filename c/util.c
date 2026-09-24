@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 char *lire_fichier(const char *chemin) {
     FILE *f = fopen(chemin, "rb");
     if (!f) {
@@ -29,6 +35,19 @@ void obtenir_dossier(char *dehors, size_t taille, const char *chemin) {
     if (longueur >= taille) longueur = taille - 1;
     memcpy(dehors, chemin, longueur);
     dehors[longueur] = '\0';
+}
+
+void obtenir_dossier_executable(char *dehors, size_t taille) {
+    char chemin_exe[4096];
+#ifdef _WIN32
+    DWORD lu = GetModuleFileNameA(NULL, chemin_exe, sizeof(chemin_exe));
+    if (lu == 0 || lu >= sizeof(chemin_exe)) { snprintf(dehors, taille, "."); return; }
+#else
+    ssize_t lu = readlink("/proc/self/exe", chemin_exe, sizeof(chemin_exe) - 1);
+    if (lu <= 0) { snprintf(dehors, taille, "."); return; }
+    chemin_exe[lu] = '\0';
+#endif
+    obtenir_dossier(dehors, taille, chemin_exe);
 }
 
 char **decouper_lignes(const char *source, int *nb_dehors) {

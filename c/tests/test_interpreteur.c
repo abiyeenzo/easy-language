@@ -6,6 +6,7 @@
 void executer_tests_debogueur(void);
 void executer_tests_natifs(void);
 void executer_tests_texte_temps(void);
+void executer_tests_import_systeme(void);
 
 #define X(source) executer_script((source), NULL)
 
@@ -429,6 +430,7 @@ int main(void) {
     executer_tests_debogueur();
     executer_tests_natifs();
     executer_tests_texte_temps();
+    executer_tests_import_systeme();
 
     printf("%d/%d tests reussis\n", TESTS_TOTAL - TESTS_ECHOUES, TESTS_TOTAL);
     return TESTS_ECHOUES > 0 ? 1 : 0;

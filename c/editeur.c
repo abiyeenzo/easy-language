@@ -21,12 +21,19 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <richedit.h>
+#include <shellapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wctype.h>
+#include <winhttp.h>
 
 #include "ressources.h"
+
+#define VERSION_EDITEUR "1.0.6"
+#define VERSION_EDITEUR_WIDE_(s) L##s
+#define VERSION_EDITEUR_WIDE(s) VERSION_EDITEUR_WIDE_(s)
+#define VERSION_EDITEUR_L VERSION_EDITEUR_WIDE(VERSION_EDITEUR)
 
 #define ID_EDITEUR 101
 #define ID_SORTIE 102
@@ -41,9 +48,13 @@
 #define ID_MENU_DEBOGUER 207
 #define ID_MENU_APROPOS 208
 #define ID_MENU_RECHERCHER 209
+#define ID_MENU_VERIFIER_MAJ 210
 
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
 #define WM_APP_PROCESSUS_TERMINE (WM_APP + 2)
+#define WM_APP_MAJ_DISPONIBLE (WM_APP + 3)
+#define WM_APP_MAJ_AUCUNE (WM_APP + 4)
+#define WM_APP_MAJ_ERREUR (WM_APP + 5)
 
 static HWND g_fenetre, g_editeur, g_sortie, g_entree_commande, g_label_entree;
 static HWND g_barre_outils, g_barre_etat;
@@ -240,6 +251,111 @@ static void ouvrir_recherche(void) {
     g_fr.wFindWhatLen = sizeof(g_recherche) / sizeof(wchar_t);
     g_fr.Flags = FR_DOWN;
     g_dlg_recherche = FindTextW(&g_fr);
+}
+
+/* ------------------------------------------------------------------ */
+/* verification de mise a jour (GitHub Releases)                      */
+
+/* Requete HTTPS GET minimale via WinHTTP (deja presente sur Windows,
+   aucune dependance a ajouter). Retourne le corps de la reponse
+   (chaine C allouee, a liberer par l'appelant) ou NULL en cas d'echec
+   (pas de connexion, DNS, etc.) : jamais d'erreur bloquante pour une
+   verification automatique au demarrage. */
+static char *http_get(const wchar_t *hote, const wchar_t *chemin) {
+    char *resultat = NULL;
+    HINTERNET session = WinHttpOpen(L"EasyLanguageEditeur/" VERSION_EDITEUR_L,
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!session) return NULL;
+
+    HINTERNET connexion = WinHttpConnect(session, hote, INTERNET_DEFAULT_HTTPS_PORT, 0);
+    if (!connexion) { WinHttpCloseHandle(session); return NULL; }
+
+    HINTERNET requete = WinHttpOpenRequest(connexion, L"GET", chemin, NULL, WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+    if (!requete) { WinHttpCloseHandle(connexion); WinHttpCloseHandle(session); return NULL; }
+
+    BOOL ok = WinHttpSendRequest(requete, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+    if (ok) ok = WinHttpReceiveResponse(requete, NULL);
+
+    if (ok) {
+        size_t capacite = 4096, taille = 0;
+        resultat = malloc(capacite);
+        DWORD disponible;
+        while (WinHttpQueryDataAvailable(requete, &disponible) && disponible > 0) {
+            if (taille + disponible + 1 > capacite) {
+                while (taille + disponible + 1 > capacite) capacite *= 2;
+                resultat = realloc(resultat, capacite);
+            }
+            DWORD lu;
+            if (!WinHttpReadData(requete, resultat + taille, disponible, &lu)) break;
+            taille += lu;
+        }
+        resultat[taille] = '\0';
+    }
+
+    WinHttpCloseHandle(requete);
+    WinHttpCloseHandle(connexion);
+    WinHttpCloseHandle(session);
+    return resultat;
+}
+
+/* Extrait la valeur de "tag_name":"..." d'une reponse JSON de l'API
+   GitHub Releases. Recherche textuelle ciblee plutot qu'un analyseur
+   JSON complet : suffisant et fiable pour ce seul champ, sur un format
+   de reponse stable et documente. */
+static BOOL extraire_tag(const char *json, char *dehors, size_t taille) {
+    const char *cle = "\"tag_name\":\"";
+    const char *debut = strstr(json, cle);
+    if (!debut) return FALSE;
+    debut += strlen(cle);
+    const char *fin = strchr(debut, '"');
+    if (!fin) return FALSE;
+    size_t longueur = (size_t)(fin - debut);
+    if (longueur >= taille) longueur = taille - 1;
+    memcpy(dehors, debut, longueur);
+    dehors[longueur] = '\0';
+    return TRUE;
+}
+
+/* Compare une version "vX.Y.Z" (ou "X.Y.Z") de release a VERSION_EDITEUR.
+   Retourne 1 si distante > locale, 0 sinon (egale, plus ancienne, ou
+   format illisible). */
+static int version_plus_recente(const char *tag) {
+    if (tag[0] == 'v' || tag[0] == 'V') tag++;
+    int ma = 0, mi = 0, pa = 0;
+    int la = 0, li = 0, lo = 0;
+    if (sscanf(tag, "%d.%d.%d", &ma, &mi, &pa) != 3) return 0;
+    if (sscanf(VERSION_EDITEUR, "%d.%d.%d", &la, &li, &lo) != 3) return 0;
+    if (ma != la) return ma > la;
+    if (mi != li) return mi > li;
+    return pa > lo;
+}
+
+static DWORD WINAPI thread_verifier_maj(LPVOID param) {
+    BOOL silencieux = (BOOL)(INT_PTR)param;
+    char *reponse = http_get(L"api.github.com", L"/repos/abiyeenzo/easy-language/releases/latest");
+    if (!reponse) {
+        if (!silencieux) PostMessageW(g_fenetre, WM_APP_MAJ_ERREUR, 0, 0);
+        return 0;
+    }
+
+    char tag[64];
+    BOOL trouve = extraire_tag(reponse, tag, sizeof(tag));
+    free(reponse);
+
+    if (trouve && version_plus_recente(tag)) {
+        int longueur_large = MultiByteToWideChar(CP_UTF8, 0, tag, -1, NULL, 0);
+        wchar_t *large = malloc(sizeof(wchar_t) * longueur_large);
+        MultiByteToWideChar(CP_UTF8, 0, tag, -1, large, longueur_large);
+        PostMessageW(g_fenetre, WM_APP_MAJ_DISPONIBLE, 0, (LPARAM)large);
+    } else if (!silencieux) {
+        PostMessageW(g_fenetre, WM_APP_MAJ_AUCUNE, 0, 0);
+    }
+    return 0;
+}
+
+static void lancer_verification_maj(BOOL silencieux) {
+    CloseHandle(CreateThread(NULL, 0, thread_verifier_maj, (LPVOID)(INT_PTR)silencieux, 0, NULL));
 }
 
 /* ------------------------------------------------------------------ */
@@ -465,6 +581,7 @@ static void creer_menu(HWND hwnd) {
     AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_executer, L"Executer");
 
     HMENU menu_aide = CreatePopupMenu();
+    AppendMenuW(menu_aide, MF_STRING, ID_MENU_VERIFIER_MAJ, L"Verifier les mises a jour");
     AppendMenuW(menu_aide, MF_STRING, ID_MENU_APROPOS, L"A propos");
     AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_aide, L"Aide");
 
@@ -572,9 +689,9 @@ static void redimensionner_controles(HWND hwnd) {
 static void mettre_a_jour_titre(HWND hwnd) {
     wchar_t titre[MAX_PATH + 64];
     if (g_chemin_fichier[0] == L'\0') {
-        wcscpy(titre, L"Easy Language 1.0.6 - Editeur [Nouveau fichier]");
+        wcscpy(titre, L"Easy Language " VERSION_EDITEUR_L L" - Editeur [Nouveau fichier]");
     } else {
-        _snwprintf(titre, MAX_PATH + 64, L"Easy Language 1.0.6 - Editeur [%s]", g_chemin_fichier);
+        _snwprintf(titre, MAX_PATH + 64, L"Easy Language " VERSION_EDITEUR_L L" - Editeur [%s]", g_chemin_fichier);
     }
     SetWindowTextW(hwnd, titre);
 }
@@ -633,8 +750,11 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
             break;
         case ID_MENU_APROPOS:
             MessageBoxW(hwnd,
-                L"Easy Language 1.0.6\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
+                L"Easy Language " VERSION_EDITEUR_L L"\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
                 L"A propos", MB_OK);
+            break;
+        case ID_MENU_VERIFIER_MAJ:
+            lancer_verification_maj(FALSE);
             break;
         case ID_ENTREE_COMMANDE:
             if (notification == EN_CHANGE) break;
@@ -674,6 +794,7 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             creer_controles(hwnd);
             g_proc_originale_commande = (WNDPROC)SetWindowLongPtrW(g_entree_commande, GWLP_WNDPROC, (LONG_PTR)proc_entree_commande);
             mettre_a_jour_titre(hwnd);
+            lancer_verification_maj(TRUE);
             return 0;
 
         case WM_SIZE:
@@ -697,6 +818,25 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             if (g_pipe_entree_ecriture) { CloseHandle(g_pipe_entree_ecriture); g_pipe_entree_ecriture = NULL; }
             if (g_processus_courant) g_processus_courant = NULL;
             definir_statut(wp == 0 ? L"Termine (succes)" : L"Termine (code erreur)");
+            return 0;
+
+        case WM_APP_MAJ_DISPONIBLE: {
+            wchar_t *tag = (wchar_t *)lp;
+            wchar_t message[300];
+            _snwprintf(message, 300, L"Une nouvelle version est disponible : %s\n\nOuvrir la page de telechargement ?", tag);
+            if (MessageBoxW(hwnd, message, L"Mise a jour disponible", MB_YESNO | MB_ICONINFORMATION) == IDYES) {
+                ShellExecuteW(NULL, L"open", L"https://github.com/abiyeenzo/easy-language/releases/latest", NULL, NULL, SW_SHOWNORMAL);
+            }
+            free(tag);
+            return 0;
+        }
+
+        case WM_APP_MAJ_AUCUNE:
+            MessageBoxW(hwnd, L"Vous utilisez deja la derniere version.", L"Mise a jour", MB_OK | MB_ICONINFORMATION);
+            return 0;
+
+        case WM_APP_MAJ_ERREUR:
+            MessageBoxW(hwnd, L"Impossible de verifier les mises a jour (pas de connexion ?).", L"Mise a jour", MB_OK | MB_ICONWARNING);
             return 0;
 
         case WM_DESTROY:
