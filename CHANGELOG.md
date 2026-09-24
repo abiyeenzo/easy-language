@@ -2,6 +2,52 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [1.0.8] - 2026-09-24
+
+### Ajoute
+- **Journal (logs) dans l'editeur graphique.** Sans console visible, une
+  erreur ou un plantage disparaissait silencieusement. Desormais,
+  `%APPDATA%\EasyLanguage\editeur.log` recoit un enregistrement horodate
+  de chaque evenement significatif (demarrage, ouverture/enregistrement
+  de fichier, lancement de l'interpreteur/debogueur et son code de
+  sortie), plus un gestionnaire de plantage (`SetUnhandledExceptionFilter`)
+  qui consigne le code et l'adresse de toute exception non geree avant
+  la fermeture. Accessible depuis Aide > Voir le journal. Le fichier est
+  repris a zero au-dela de 2 Mo pour eviter une croissance illimitee.
+- `exemples/nouveautes_demo.elg` : un script qui exerce ensemble tous
+  les modules/fonctionnalites ajoutes recemment (texte, temps, `importe`
+  sans chemin, fermetures, l'ambiguite `3 -4`) et affiche un bilan
+  ok/echec pour chacun.
+
+### Ameliore
+- Editeur graphique : la barre laterale (arborescence) s'ouvrait par
+  defaut sur le dossier courant (CWD) du processus, imprevisible pour
+  une application GUI lancee par raccourci (pouvait etre le Bureau,
+  n'importe quoi), donnant une impression de barre vide ou hors-sujet
+  ("comme VS Code sans dossier ouvert"). Elle s'ouvre desormais sur le
+  dossier de l'executable (contient `bibliotheque/` et `exemples/`,
+  toujours pertinent et previsible), avant de basculer sur le dossier
+  du fichier des qu'on en ouvre un.
+- Editeur graphique : `enregistrer_fichier` signalait un succes meme
+  quand l'ecriture disque echouait reellement (permission refusee,
+  disque plein...), laissant croire a l'utilisateur que son fichier
+  etait sauvegarde alors que non. Signale maintenant clairement (boite
+  de dialogue + entree de journal) sans changer le comportement de
+  secours existant (proposer "Enregistrer sous" quand aucun chemin
+  n'est encore defini).
+
+### Corrige
+- **Ambiguite `f(x [1 2])` face a l'indexation.** Trouvee en ecrivant
+  `nouveautes_demo.elg` : dans une liste d'arguments sans virgule,
+  `f(x [1 2])` etait lu comme l'indexation `x[1 2]` plutot que deux
+  arguments distincts (`x`, puis le litteral de liste `[1 2]`). Meme
+  principe de correction que pour le `-` unaire (v1.0.7) : un `[` colle
+  a ce qui le precede (sans espace avant, comme pour indexer
+  `fruits[0]`) reste de l'indexation ; un `[` precede d'une espace
+  marque desormais un nouvel argument. 2 nouveaux tests de
+  non-regression.
+- 2 nouveaux tests (192 au total).
+
 ## [1.0.7] - 2026-09-24
 
 ### Ajoute

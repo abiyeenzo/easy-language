@@ -145,7 +145,20 @@ static Noeud *primaire_base(Analyseur *a) {
 static Noeud *primaire(Analyseur *a) {
     Noeud *cible = primaire_base(a);
     if (cible->type == N_LISTE) return cible;
-    while (correspond(a, T_CROCHET_O) || correspond(a, T_POINT)) {
+    for (;;) {
+        /* Meme principe que pour le '-' unaire (voir addition()) : sans
+           virgule dans les listes d'arguments, "f(x [1 2])" doit lire
+           deux arguments (x, puis le litteral de liste [1 2]), pas
+           l'indexation "x[1 2]". Un '[' colle a la cible (sans espace
+           avant) reste de l'indexation (x[0]), comme toujours ; un '['
+           precede d'une espace arrete plutot ce postfixe pour laisser
+           l'appelant (liste d'arguments) le lire comme un nouvel
+           element. Le '.' (acces de membre / module) n'a pas cette
+           ambiguite : aucun autre sens valide n'existe pour lui a cette
+           position, l'espacement n'y change donc rien. */
+        if (correspond(a, T_CROCHET_O) && actuel(a)->espace_avant) break;
+        if (!correspond(a, T_CROCHET_O) && !correspond(a, T_POINT)) break;
+
         if (correspond(a, T_CROCHET_O)) {
             int ligne = avancer(a).ligne;
             Noeud *idx = expression(a);

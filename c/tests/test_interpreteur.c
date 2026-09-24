@@ -332,6 +332,31 @@ static void test_moins_unaire_directement_en_argument_de_fonction(void) {
     executer_script_liberer(r);
 }
 
+/* Meme famille d'ambiguite que le '-' unaire, mais pour '[' : sans
+   virgule dans les arguments, "f(x [1 2])" etait lu comme l'indexation
+   "x[1 2]" plutot que deux arguments distincts (x, puis le litteral de
+   liste [1 2]). Trouve en ecrivant exemples/nouveautes_demo.elg. */
+static void test_crochet_espace_avant_lu_comme_nouvel_argument(void) {
+    ResultatExecution r = X(
+        "fonction f(a b):\n"
+        "    affiche a\n"
+        "    affiche b\n"
+        "f(\"x\" [\"a\" \"b\" \"c\"])\n");
+    VERIFIER_EGAL_STR(r.sortie, "x\n[a b c]\n");
+    executer_script_liberer(r);
+}
+
+static void test_crochet_sans_espace_reste_indexation(void) {
+    ResultatExecution r = X(
+        "soit fruits = [\"pomme\" \"banane\" \"kiwi\"]\n"
+        "affiche fruits[0]\n"
+        "affiche fruits[1]\n"
+        "soit i = 2\n"
+        "affiche fruits[i]\n");
+    VERIFIER_EGAL_STR(r.sortie, "pomme\nbanane\nkiwi\n");
+    executer_script_liberer(r);
+}
+
 static void test_fermetures_imbriquees_avec_parametre(void) {
     ResultatExecution r = X(
         "fonction fabrique(depart):\n"
@@ -518,6 +543,8 @@ int main(void) {
     test_moins_sans_espace_reste_soustraction();
     test_moins_double_reste_soustraction_de_negatif();
     test_moins_unaire_directement_en_argument_de_fonction();
+    test_crochet_espace_avant_lu_comme_nouvel_argument();
+    test_crochet_sans_espace_reste_indexation();
 
     test_liste_litterale_et_affichage();
     test_indexation_lecture();

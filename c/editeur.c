@@ -22,6 +22,7 @@
 #include <commdlg.h>
 #include <richedit.h>
 #include <shellapi.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@
 
 #include "ressources.h"
 
-#define VERSION_EDITEUR "1.0.7"
+#define VERSION_EDITEUR "1.0.8"
 #define VERSION_EDITEUR_WIDE_(s) L##s
 #define VERSION_EDITEUR_WIDE(s) VERSION_EDITEUR_WIDE_(s)
 #define VERSION_EDITEUR_L VERSION_EDITEUR_WIDE(VERSION_EDITEUR)
@@ -52,6 +53,7 @@
 #define ID_MENU_RECENT_EFFACER 298
 #define ID_MENU_RECENT_BASE 300
 #define ID_MENU_FERMER_ONGLET 211
+#define ID_MENU_VOIR_JOURNAL 212
 #define MAX_FICHIERS_RECENTS 8
 
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
@@ -110,6 +112,82 @@ static int g_arbo_compte = 0;
 static void mettre_a_jour_titre(HWND hwnd);
 static BOOL charger_fichier(const wchar_t *chemin);
 static void definir_statut(const wchar_t *texte);
+
+/* ------------------------------------------------------------------ */
+/* journal (logs) et rapport de plantage                              */
+/*                                                                     */
+/* L'editeur n'a pas de console visible : sans ceci, une erreur ou un  */
+/* plantage disparaissait silencieusement (au mieux une boite de       */
+/* dialogue transitoire, jamais gardee). Tout est ecrit, horodate,     */
+/* dans %APPDATA%\EasyLanguage\editeur.log, consultable depuis le menu */
+/* Aide > Voir le journal. */
+
+static wchar_t g_chemin_journal[MAX_PATH] = L"";
+
+static void initialiser_journal(void) {
+    wchar_t appdata[MAX_PATH];
+    DWORD longueur = GetEnvironmentVariableW(L"APPDATA", appdata, MAX_PATH);
+    if (longueur == 0 || longueur >= MAX_PATH) return;
+
+    wchar_t dossier[MAX_PATH];
+    _snwprintf(dossier, MAX_PATH, L"%s\\EasyLanguage", appdata);
+    CreateDirectoryW(dossier, NULL);
+    _snwprintf(g_chemin_journal, MAX_PATH, L"%s\\editeur.log", dossier);
+
+    /* evite une croissance illimitee : on repart de zero au-dela de 2 Mo */
+    WIN32_FILE_ATTRIBUTE_DATA info;
+    if (GetFileAttributesExW(g_chemin_journal, GetFileExInfoStandard, &info)) {
+        ULONGLONG taille = ((ULONGLONG)info.nFileSizeHigh << 32) | info.nFileSizeLow;
+        if (taille > 2 * 1024 * 1024) DeleteFileW(g_chemin_journal);
+    }
+}
+
+static void journaliser(const wchar_t *format, ...) {
+    if (!g_chemin_journal[0]) return;
+    FILE *f = _wfopen(g_chemin_journal, L"a, ccs=UTF-8");
+    if (!f) return;
+
+    SYSTEMTIME t;
+    GetLocalTime(&t);
+    fwprintf(f, L"[%04d-%02d-%02d %02d:%02d:%02d] ", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
+
+    va_list args;
+    va_start(args, format);
+    vfwprintf(f, format, args);
+    va_end(args);
+
+    fwprintf(f, L"\n");
+    fclose(f);
+}
+
+static void ouvrir_journal(void) {
+    if (!g_chemin_journal[0]) {
+        MessageBoxW(NULL, L"Journal indisponible.", L"Easy Language", MB_ICONWARNING);
+        return;
+    }
+    journaliser(L"Ouverture manuelle du journal par l'utilisateur.");
+    ShellExecuteW(NULL, L"open", g_chemin_journal, NULL, NULL, SW_SHOWNORMAL);
+}
+
+/* Filtre d'exception non geree (SEH) : capture les plantages reels
+   (acces memoire invalide, etc.) qui echapperaient sinon completement,
+   et les consigne avant de laisser Windows terminer le processus. Pas
+   de trace d'appel symbolisee (demanderait dbghelp.dll et la resolution
+   de symboles, hors de portee ici) : le code et l'adresse de
+   l'exception suffisent deja a orienter le diagnostic, combines au
+   dernier evenement journalise juste avant (quelle action etait en
+   cours). */
+static LONG WINAPI filtre_exception_non_geree(EXCEPTION_POINTERS *info) {
+    journaliser(L"PLANTAGE : code d'exception 0x%08lX a l'adresse 0x%p",
+        (unsigned long)info->ExceptionRecord->ExceptionCode,
+        info->ExceptionRecord->ExceptionAddress);
+    wchar_t message[300];
+    _snwprintf(message, 300,
+        L"Easy Language a rencontre un probleme et doit se fermer.\n\nDetails enregistres dans :\n%s",
+        g_chemin_journal);
+    MessageBoxW(NULL, message, L"Easy Language - Erreur", MB_ICONERROR);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
 
 /* ------------------------------------------------------------------ */
 /* coloration syntaxique                                              */
@@ -440,6 +518,7 @@ static void gerer_clic_arborescence(int idx) {
     if (g_arbo_est_dossier[idx]) {
         peupler_arborescence(chemin);
     } else if (!charger_fichier(chemin)) {
+        journaliser(L"Echec d'ouverture depuis l'arborescence : %s", chemin);
         MessageBoxW(g_fenetre, L"Impossible d'ouvrir ce fichier.", L"Erreur", MB_ICONERROR);
     }
 }
@@ -685,6 +764,7 @@ static void ecrire_utf8(HANDLE pipe, const wchar_t *texte) {
 }
 
 static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_supplementaire, BOOL mode_debogueur) {
+    journaliser(L"Lancement demande : %s (fichier %s)", nom_exe, g_chemin_fichier);
     if (g_processus_actif) {
         MessageBoxW(g_fenetre, L"Une execution est deja en cours.", L"Easy Language", MB_ICONINFORMATION);
         return;
@@ -692,6 +772,7 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
 
     wchar_t chemin_exe[MAX_PATH];
     if (!obtenir_chemin_frere(nom_exe, chemin_exe, MAX_PATH)) {
+        journaliser(L"Executable introuvable a cote de l'editeur : %s", nom_exe);
         MessageBoxW(g_fenetre, L"Impossible de localiser l'executable.", L"Erreur", MB_ICONERROR);
         definir_statut(L"Erreur: executable introuvable");
         return;
@@ -733,6 +814,7 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
     CloseHandle(entree_lecture);
 
     if (!ok) {
+        journaliser(L"CreateProcessW a echoue (code %lu) pour : %s", (unsigned long)GetLastError(), ligne_commande);
         MessageBoxW(g_fenetre, L"Impossible de lancer l'executable (est-il bien installe a cote de l'editeur ?)", L"Erreur", MB_ICONERROR);
         definir_statut(L"Erreur: lancement impossible");
         CloseHandle(sortie_lecture);
@@ -942,13 +1024,25 @@ static BOOL enregistrer_fichier(void) {
 
     HANDLE f = CreateFileW(g_chemin_fichier, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     BOOL ok = f != INVALID_HANDLE_VALUE;
+    DWORD ecrit = 0;
     if (ok) {
-        DWORD ecrit;
         WriteFile(f, utf8, (DWORD)strlen(utf8), &ecrit, NULL);
+        ok = ecrit == strlen(utf8);
         CloseHandle(f);
     }
     free(texte);
     free(utf8);
+
+    /* echec reel d'ecriture (pas le cas "pas encore de chemin", deja
+       ecarte au tout debut de la fonction) : auparavant signale comme un
+       succes silencieux, l'utilisateur croyait avoir enregistre alors
+       que non. */
+    if (!ok) {
+        journaliser(L"Echec d'enregistrement (GetLastError=%lu) : %s", (unsigned long)GetLastError(), g_chemin_fichier);
+        wchar_t message[MAX_PATH + 64];
+        _snwprintf(message, MAX_PATH + 64, L"Impossible d'enregistrer le fichier :\n%s", g_chemin_fichier);
+        MessageBoxW(g_fenetre, message, L"Erreur", MB_ICONERROR);
+    }
 
     if (ok && g_document_actif >= 0) {
         wcsncpy(g_documents[g_document_actif].chemin, g_chemin_fichier, MAX_PATH - 1);
@@ -991,6 +1085,7 @@ static void ouvrir_fichier(void) {
 
     if (!GetOpenFileNameW(&ofn)) return;
     if (!charger_fichier(tampon)) {
+        journaliser(L"Echec d'ouverture via la boite de dialogue : %s", tampon);
         MessageBoxW(g_fenetre, L"Impossible d'ouvrir ce fichier.", L"Erreur", MB_ICONERROR);
     }
 }
@@ -1024,6 +1119,7 @@ static void creer_menu(HWND hwnd) {
 
     HMENU menu_aide = CreatePopupMenu();
     AppendMenuW(menu_aide, MF_STRING, ID_MENU_VERIFIER_MAJ, L"Verifier les mises a jour");
+    AppendMenuW(menu_aide, MF_STRING, ID_MENU_VOIR_JOURNAL, L"Voir le journal (logs)");
     AppendMenuW(menu_aide, MF_STRING, ID_MENU_APROPOS, L"A propos");
     AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_aide, L"Aide");
 
@@ -1224,6 +1320,9 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
         case ID_MENU_VERIFIER_MAJ:
             lancer_verification_maj(FALSE);
             break;
+        case ID_MENU_VOIR_JOURNAL:
+            ouvrir_journal();
+            break;
         case ID_MENU_RECENT_EFFACER:
             effacer_fichiers_recents();
             break;
@@ -1274,8 +1373,20 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             mettre_a_jour_titre(hwnd);
             charger_fichiers_recents();
             reconstruire_menu_recents();
-            wchar_t dossier_courant[MAX_PATH];
-            if (GetCurrentDirectoryW(MAX_PATH, dossier_courant)) peupler_arborescence(dossier_courant);
+            /* Le dossier courant (CWD) d'une appli GUI lancee par raccourci
+               n'est pas previsible (peut etre le Bureau, System32, ou
+               n'importe quoi selon comment elle a ete lancee) : la barre
+               laterale semblait alors vide ou montrait un dossier sans
+               rapport, un peu comme VS Code sans dossier ouvert. Le
+               dossier de l'executable est stable et toujours pertinent
+               (il contient bibliotheque/ et exemples/), donc c'est le
+               point de depart par defaut. */
+            wchar_t dossier_defaut[MAX_PATH];
+            if (obtenir_chemin_frere(L"", dossier_defaut, MAX_PATH)) {
+                size_t longueur = wcslen(dossier_defaut);
+                if (longueur > 0 && dossier_defaut[longueur - 1] == L'\\') dossier_defaut[longueur - 1] = L'\0';
+                peupler_arborescence(dossier_defaut);
+            }
             lancer_verification_maj(TRUE);
             return 0;
         }
@@ -1313,6 +1424,7 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             EnableWindow(g_entree_commande, FALSE);
             if (g_pipe_entree_ecriture) { CloseHandle(g_pipe_entree_ecriture); g_pipe_entree_ecriture = NULL; }
             if (g_processus_courant) g_processus_courant = NULL;
+            journaliser(L"Execution terminee, code de sortie %lu", (unsigned long)wp);
             definir_statut(wp == 0 ? L"Termine (succes)" : L"Termine (code erreur)");
             return 0;
 
@@ -1356,6 +1468,10 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR ligne_commande, int mode_affichage) {
     (void)instance_precedente; (void)ligne_commande;
+
+    initialiser_journal();
+    SetUnhandledExceptionFilter(filtre_exception_non_geree);
+    journaliser(L"Demarrage Easy Language " VERSION_EDITEUR_L L".");
 
     LoadLibraryW(L"Msftedit.dll");
 

@@ -33,7 +33,7 @@ make tests
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
 binaire `easylang`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
-190 verifications : variables, boucles, fonctions, fermetures, listes,
+192 verifications : variables, boucles, fonctions, fermetures, listes,
 erreurs, entree standard, debogueur, bibliotheque standard
 (math/os/reseau/gui/texte/temps, y compris un aller-retour TCP reel
 contre un serveur d'echo lance par le test lui-meme).
@@ -73,9 +73,11 @@ ligne/colonne du curseur) encadrent trois zones :
   un fichier déjà ouvert bascule sur son onglet au lieu d'en dupliquer
   un ; un `*` dans le titre de l'onglet signale des modifications non
   enregistrées, avec confirmation à la fermeture (Ctrl+W).
-- **Arborescence** dans une barre latérale (dossier du fichier ouvert,
-  ou dossier courant au démarrage) : `[dossier]` pour naviguer,
-  `fichier.elg` pour l'ouvrir directement.
+- **Arborescence** dans une barre latérale, ouverte par défaut sur le
+  dossier de l'exécutable (donc toujours peuplée, contrairement au
+  dossier courant d'une appli GUI lancée par raccourci, imprévisible) ;
+  bascule sur le dossier du fichier ouvert dès qu'on en ouvre un.
+  `[dossier]` pour naviguer, `fichier.elg` pour l'ouvrir directement.
 
 Menu Fichier > Fichiers récents (jusqu'à 8, persistés par utilisateur
 dans le registre Windows, HKCU) pour rouvrir rapidement un script. Il
@@ -83,9 +85,17 @@ vérifie automatiquement (via l'API GitHub Releases, en tâche de fond, au
 démarrage) si une nouvelle version est disponible, et propose d'ouvrir la
 page de téléchargement le cas échéant (menu Aide > Vérifier les mises à
 jour pour relancer la vérification manuellement) ; aucun téléchargement
-ni exécution automatique, l'utilisateur choisit toujours. Il ne se
-compile que pour Windows et doit rester dans le même dossier que les
-deux autres `.exe`.
+ni exécution automatique, l'utilisateur choisit toujours.
+
+**Journal (logs).** L'éditeur n'a pas de console visible : les erreurs
+(échec d'ouverture/enregistrement, échec de lancement) et un
+gestionnaire de plantage (exceptions non gérées, code + adresse) sont
+consignés, horodatés, dans `%APPDATA%\EasyLanguage\editeur.log`,
+accessible depuis Aide > Voir le journal. Utile pour diagnostiquer un
+problème à distance sans accès à la machine.
+
+Il ne se compile que pour Windows et doit rester dans le même dossier
+que les deux autres `.exe`.
 
 Les trois `.exe` embarquent le logo du langage (`packaging/icone.ico`,
 compilé via `c/ressources.rc`). Le script `packaging/associer_fichiers.ps1`
@@ -330,6 +340,17 @@ Deux anciennes limitations de cette section ont ete corrigees :
   `affiche 3 -4` affiche maintenant deux arguments (`3 -4`), alors que
   `affiche 3 - 4` et `affiche 3-4` (espaces des deux cotes, ou aucune)
   restent des soustractions (`-1`), inchangees.
+- **Ambiguite `f(x [1 2])`.** Meme famille de probleme que `3 -4`, mais
+  pour `[` : sans virgule dans les arguments, `f(x [1 2])` etait lu
+  comme l'indexation `x[1 2]` plutot que deux arguments distincts (`x`,
+  puis le litteral de liste `[1 2]`). Un `[` colle a ce qui le precede
+  (aucune espace avant, comme toujours pour indexer : `fruits[0]`) reste
+  de l'indexation ; un `[` precede d'une espace marque desormais le
+  debut d'un nouvel argument.
+
+Ces additions (et les precedentes) sont exercees ensemble dans
+[`exemples/nouveautes_demo.elg`](exemples/nouveautes_demo.elg), un
+script qui verifie chaque fonctionnalite et affiche un bilan.
 
 ## Performance
 
