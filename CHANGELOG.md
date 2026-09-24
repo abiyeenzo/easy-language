@@ -2,7 +2,16 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
-## [Non publie]
+## [1.0.3] - 2026-09-24
+
+### Ajoute
+- Refonte complete de la page de presentation (`site/index.html`) :
+  identite visuelle premium (typographie, degrade de marque, barre de
+  statistiques), documentation complete alignee sur la syntaxe actuelle,
+  section licence et politique de confidentialite, section creation
+  attribuee a Abiye Enzo.
+
+## [1.0.1] - [1.0.2]
 
 ### Ajoute
 - `demande` accepte desormais une syntaxe avec parentheses,

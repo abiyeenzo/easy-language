@@ -7,7 +7,7 @@
 #include "lexer.h"
 #include "util.h"
 
-#define VERSION "1.0.0"
+#define VERSION "1.0.3"
 
 int main(int argc, char **argv) {
     if (argc == 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {

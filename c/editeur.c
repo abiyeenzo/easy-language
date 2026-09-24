@@ -435,9 +435,9 @@ static void redimensionner_controles(HWND hwnd) {
 static void mettre_a_jour_titre(HWND hwnd) {
     wchar_t titre[MAX_PATH + 64];
     if (g_chemin_fichier[0] == L'\0') {
-        wcscpy(titre, L"Easy Language 1.0.0 - Editeur [Nouveau fichier]");
+        wcscpy(titre, L"Easy Language 1.0.3 - Editeur [Nouveau fichier]");
     } else {
-        _snwprintf(titre, MAX_PATH + 64, L"Easy Language 1.0.0 - Editeur [%s]", g_chemin_fichier);
+        _snwprintf(titre, MAX_PATH + 64, L"Easy Language 1.0.3 - Editeur [%s]", g_chemin_fichier);
     }
     SetWindowTextW(hwnd, titre);
 }
@@ -486,7 +486,7 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
             break;
         case ID_MENU_APROPOS:
             MessageBoxW(hwnd,
-                L"Easy Language 1.0.0\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
+                L"Easy Language 1.0.3\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
                 L"A propos", MB_OK);
             break;
         case ID_ENTREE_COMMANDE:
