@@ -33,9 +33,10 @@ make tests
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
 binaire `easy_language`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
-122 verifications : variables, boucles, fonctions, listes, erreurs, entree
-standard, debogueur, bibliotheque standard (math/os/reseau/gui, y compris
-un aller-retour TCP reel contre un serveur d'echo lance par le test lui-meme).
+158 verifications : variables, boucles, fonctions, listes, erreurs, entree
+standard, debogueur, bibliotheque standard (math/os/reseau/gui/texte/temps,
+y compris un aller-retour TCP reel contre un serveur d'echo lance par le
+test lui-meme).
 
 ## Utilisation
 
@@ -56,8 +57,11 @@ Commandes du debogueur : `n` (suivant), `c` (continuer), `ba <ligne>` /
 L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
 (RichEdit pour la coloration syntaxique, `CreateProcess`/pipes pour
 lancer `easy_language.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
-déboguer. Il ne se compile que pour Windows et doit rester dans le même
-dossier que les deux autres `.exe`.
+déboguer, Ctrl+F = rechercher. Une barre d'outils (Nouveau, Ouvrir,
+Enregistrer, Lancer, Déboguer, Rechercher) et une barre d'état (état de
+l'exécution en cours, ligne/colonne du curseur) complètent le menu. Il ne
+se compile que pour Windows et doit rester dans le même dossier que les
+deux autres `.exe`.
 
 Les trois `.exe` embarquent le logo du langage (`packaging/icone.ico`,
 compilé via `c/ressources.rc`). Le script `packaging/associer_fichiers.ps1`
@@ -195,11 +199,15 @@ importe "bibliotheque/math.elg" comme math
 importe "bibliotheque/os.elg" comme os
 importe "bibliotheque/reseau.elg" comme reseau
 importe "bibliotheque/gui.elg" comme gui
+importe "bibliotheque/texte.elg" comme texte
+importe "bibliotheque/temps.elg" comme temps
 
 affiche math.racine(2)
 affiche os.fichier_existe("notes.txt")
 soit s = reseau.connecter("example.com" 80)
 gui.message("Titre" "Un message")
+affiche texte.majuscules("bonjour")
+affiche temps.formater(temps.maintenant() "%Y-%m-%d")
 ```
 
 - **`math`** : `racine`, `puissance`, `sin`, `cos`, `tan`, `abs`,
@@ -218,6 +226,16 @@ gui.message("Titre" "Un message")
   (`.exe`), une vraie boîte Win32 s'affiche (`MessageBoxW`) ; ailleurs
   (développement, tests, CI Linux), repli console pour rester exécutable
   et testable partout.
+- **`texte`** : `decouper` (split), `joindre` (join), `remplacer`,
+  `majuscules`, `minuscules`, `rogner` (trim), `commence_par`,
+  `finit_par`, `sous_texte` (substring, indices bornés sans erreur),
+  `inverse`, `position` (index ou `-1`), `contient_texte`.
+- **`temps`** : `maintenant` (horodatage courant), `annee`, `mois`,
+  `jour`, `heure`, `minute`, `seconde`, `jour_semaine` (0 = dimanche),
+  `formater(horodatage motif)` avec les codes `strftime` standards
+  (`%Y-%m-%d %H:%M:%S`, etc.). Toutes ces fonctions décomposent un
+  horodatage (le même type que `os.horodatage()`) dans le fuseau horaire
+  local de la machine.
 
 Ces fonctions natives sont aussi appelables directement sans import
 (`affiche racine(4)`), le module ne fait qu'ajouter un espace de noms.
@@ -261,8 +279,8 @@ sur des operations aussi simples.
 Aucune dépendance à installer sur la machine cible : les trois `.exe`
 (`easy_language.exe`, `easy_debogueur.exe`, `easy_editeur.exe`) ne
 dépendent que de DLL systeme presentes par defaut sur Windows
-(`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`, `ws2_32` pour le
-reseau). Voir
+(`kernel32`, `msvcrt`, `user32`, `gdi32`, `comdlg32`, `comctl32` pour la
+barre d'outils/d'état de l'éditeur, `ws2_32` pour le reseau). Voir
 [`packaging/README.md`](packaging/README.md) pour la compilation, et
 [`packaging/installateur.iss`](packaging/installateur.iss) pour
 l'installateur (menu Demarrer, association `.elg`, ajout au `PATH`).

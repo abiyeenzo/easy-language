@@ -13,6 +13,8 @@
 #include "natifs_math.h"
 #include "natifs_os.h"
 #include "natifs_reseau.h"
+#include "natifs_temps.h"
+#include "natifs_texte.h"
 #include "util.h"
 
 /* ------------------------------------------------------------------ */
@@ -402,6 +404,8 @@ static Valeur evaluer(Noeud *n, Environnement *env) {
             if (natifs_os_est(n->nom)) return natifs_os_appeler(n->nom, args, nb, n->ligne);
             if (natifs_reseau_est(n->nom)) return natifs_reseau_appeler(n->nom, args, nb, n->ligne);
             if (natifs_gui_est(n->nom)) return natifs_gui_appeler(n->nom, args, nb, n->ligne);
+            if (natifs_texte_est(n->nom)) return natifs_texte_appeler(n->nom, args, nb, n->ligne);
+            if (natifs_temps_est(n->nom)) return natifs_temps_appeler(n->nom, args, nb, n->ligne);
 
             Valeur cible;
             if (!environnement_obtenir(env, n->nom, &cible)) {

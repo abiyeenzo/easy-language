@@ -40,11 +40,17 @@
 #define ID_MENU_LANCER 206
 #define ID_MENU_DEBOGUER 207
 #define ID_MENU_APROPOS 208
+#define ID_MENU_RECHERCHER 209
 
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
 #define WM_APP_PROCESSUS_TERMINE (WM_APP + 2)
 
 static HWND g_fenetre, g_editeur, g_sortie, g_entree_commande, g_label_entree;
+static HWND g_barre_outils, g_barre_etat;
+static HWND g_dlg_recherche = NULL;
+static UINT g_msg_trouver_prochain = 0;
+static FINDREPLACEW g_fr;
+static wchar_t g_recherche[256] = L"";
 static wchar_t g_chemin_fichier[MAX_PATH] = L"";
 static HANDLE g_pipe_entree_ecriture = NULL;
 static HANDLE g_processus_courant = NULL;
@@ -163,6 +169,80 @@ static void effacer_sortie(void) {
 }
 
 /* ------------------------------------------------------------------ */
+/* barre d'etat                                                       */
+
+static void definir_statut(const wchar_t *texte) {
+    SendMessageW(g_barre_etat, SB_SETTEXTW, 0, (LPARAM)texte);
+}
+
+static void mettre_a_jour_position_curseur(void) {
+    DWORD debut, fin;
+    SendMessageW(g_editeur, EM_GETSEL, (WPARAM)&debut, (LPARAM)&fin);
+    LRESULT ligne = SendMessageW(g_editeur, EM_LINEFROMCHAR, (WPARAM)debut, 0);
+    LRESULT index_ligne = SendMessageW(g_editeur, EM_LINEINDEX, (WPARAM)ligne, 0);
+    wchar_t texte[64];
+    _snwprintf(texte, 64, L"Ligne %ld, Col %ld", (long)ligne + 1, (long)(debut - index_ligne) + 1);
+    SendMessageW(g_barre_etat, SB_SETTEXTW, 1, (LPARAM)texte);
+}
+
+/* ------------------------------------------------------------------ */
+/* recherche (Ctrl+F)                                                 */
+
+static void rechercher_suivant(const wchar_t *motif) {
+    if (!motif || motif[0] == L'\0') return;
+
+    int longueur = GetWindowTextLengthW(g_editeur);
+    wchar_t *texte = malloc(sizeof(wchar_t) * (longueur + 1));
+    GetWindowTextW(g_editeur, texte, longueur + 1);
+
+    DWORD sel_debut, sel_fin;
+    SendMessageW(g_editeur, EM_GETSEL, (WPARAM)&sel_debut, (LPARAM)&sel_fin);
+
+    /* recherche insensible a la casse, en repartant apres la selection
+       courante, avec retour au debut si rien n'est trouve plus loin */
+    wchar_t *texte_bas = _wcsdup(texte);
+    wchar_t *motif_bas = _wcsdup(motif);
+    _wcslwr(texte_bas);
+    _wcslwr(motif_bas);
+
+    wchar_t *trouve = wcsstr(texte_bas + sel_fin, motif_bas);
+    int position = -1;
+    if (trouve) {
+        position = (int)(trouve - texte_bas);
+    } else {
+        trouve = wcsstr(texte_bas, motif_bas);
+        if (trouve) position = (int)(trouve - texte_bas);
+    }
+
+    if (position >= 0) {
+        int fin_trouve = position + (int)wcslen(motif);
+        SendMessageW(g_editeur, EM_SETSEL, (WPARAM)position, (LPARAM)fin_trouve);
+        SendMessageW(g_editeur, EM_SCROLLCARET, 0, 0);
+        SetFocus(g_editeur);
+    } else {
+        MessageBoxW(g_fenetre, L"Texte introuvable.", L"Rechercher", MB_ICONINFORMATION);
+    }
+
+    free(texte_bas);
+    free(motif_bas);
+    free(texte);
+}
+
+static void ouvrir_recherche(void) {
+    if (g_dlg_recherche) {
+        SetFocus(g_dlg_recherche);
+        return;
+    }
+    memset(&g_fr, 0, sizeof(g_fr));
+    g_fr.lStructSize = sizeof(g_fr);
+    g_fr.hwndOwner = g_fenetre;
+    g_fr.lpstrFindWhat = g_recherche;
+    g_fr.wFindWhatLen = sizeof(g_recherche) / sizeof(wchar_t);
+    g_fr.Flags = FR_DOWN;
+    g_dlg_recherche = FindTextW(&g_fr);
+}
+
+/* ------------------------------------------------------------------ */
 /* lancement de processus (interpreteur / debogueur) avec pipes       */
 
 typedef struct {
@@ -183,8 +263,10 @@ static DWORD WINAPI thread_lecture_sortie(LPVOID param) {
     }
     CloseHandle(p->pipe_lecture);
     WaitForSingleObject(p->processus, INFINITE);
+    DWORD code_sortie = 0;
+    GetExitCodeProcess(p->processus, &code_sortie);
     CloseHandle(p->processus);
-    PostMessageW(g_fenetre, WM_APP_PROCESSUS_TERMINE, 0, 0);
+    PostMessageW(g_fenetre, WM_APP_PROCESSUS_TERMINE, (WPARAM)code_sortie, 0);
     free(p);
     return 0;
 }
@@ -217,6 +299,7 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
     wchar_t chemin_exe[MAX_PATH];
     if (!obtenir_chemin_frere(nom_exe, chemin_exe, MAX_PATH)) {
         MessageBoxW(g_fenetre, L"Impossible de localiser l'executable.", L"Erreur", MB_ICONERROR);
+        definir_statut(L"Erreur: executable introuvable");
         return;
     }
 
@@ -257,10 +340,13 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
 
     if (!ok) {
         MessageBoxW(g_fenetre, L"Impossible de lancer l'executable (est-il bien installe a cote de l'editeur ?)", L"Erreur", MB_ICONERROR);
+        definir_statut(L"Erreur: lancement impossible");
         CloseHandle(sortie_lecture);
         CloseHandle(entree_ecriture);
         return;
     }
+
+    definir_statut(L"Execution en cours...");
 
     /* Le pipe d'entree reste ouvert dans les deux modes: l'utilisateur
        tape une ligne dans g_entree_commande et l'envoie avec Entree des
@@ -369,6 +455,10 @@ static void creer_menu(HWND hwnd) {
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_QUITTER, L"Quitter");
     AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_fichier, L"Fichier");
 
+    HMENU menu_edition = CreatePopupMenu();
+    AppendMenuW(menu_edition, MF_STRING, ID_MENU_RECHERCHER, L"Rechercher...\tCtrl+F");
+    AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_edition, L"Edition");
+
     HMENU menu_executer = CreatePopupMenu();
     AppendMenuW(menu_executer, MF_STRING, ID_MENU_LANCER, L"Lancer\tF5");
     AppendMenuW(menu_executer, MF_STRING, ID_MENU_DEBOGUER, L"Deboguer\tF6");
@@ -381,16 +471,51 @@ static void creer_menu(HWND hwnd) {
     SetMenu(hwnd, barre);
 }
 
+static void creer_barre_outils(HWND hwnd) {
+    HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
+    g_barre_outils = CreateWindowExW(0, TOOLBARCLASSNAMEW, NULL,
+        WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | CCS_NODIVIDER,
+        0, 0, 0, 0, hwnd, NULL, instance, NULL);
+    SendMessageW(g_barre_outils, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+
+    TBBUTTON boutons[] = {
+        { I_IMAGENONE, ID_MENU_NOUVEAU, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Nouveau" },
+        { I_IMAGENONE, ID_MENU_OUVRIR, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Ouvrir" },
+        { I_IMAGENONE, ID_MENU_ENREGISTRER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Enregistrer" },
+        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_SEP, {0}, 0, 0 },
+        { I_IMAGENONE, ID_MENU_LANCER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Lancer" },
+        { I_IMAGENONE, ID_MENU_DEBOGUER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Deboguer" },
+        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_SEP, {0}, 0, 0 },
+        { I_IMAGENONE, ID_MENU_RECHERCHER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Rechercher" },
+    };
+    SendMessageW(g_barre_outils, TB_ADDBUTTONSW, sizeof(boutons) / sizeof(boutons[0]), (LPARAM)boutons);
+    SendMessageW(g_barre_outils, TB_AUTOSIZE, 0, 0);
+}
+
+static void creer_barre_etat(HWND hwnd) {
+    HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
+    g_barre_etat = CreateWindowExW(0, STATUSCLASSNAMEW, NULL,
+        WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
+        0, 0, 0, 0, hwnd, NULL, instance, NULL);
+    int parties[] = { 220, -1 };
+    SendMessageW(g_barre_etat, SB_SETPARTS, 2, (LPARAM)parties);
+    definir_statut(L"Pret");
+    SendMessageW(g_barre_etat, SB_SETTEXTW, 1, (LPARAM)L"Ligne 1, Col 1");
+}
+
 static void creer_controles(HWND hwnd) {
     HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
     HFONT police = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
                                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
                                 FIXED_PITCH, L"Consolas");
 
+    creer_barre_outils(hwnd);
+    creer_barre_etat(hwnd);
+
     g_editeur = CreateWindowExW(WS_EX_CLIENTEDGE, MSFTEDIT_CLASS, L"",
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN,
         0, 0, 0, 0, hwnd, (HMENU)ID_EDITEUR, instance, NULL);
-    SendMessageW(g_editeur, EM_SETEVENTMASK, 0, ENM_CHANGE);
+    SendMessageW(g_editeur, EM_SETEVENTMASK, 0, ENM_CHANGE | ENM_SELCHANGE);
     SendMessageW(g_editeur, WM_SETFONT, (WPARAM)police, TRUE);
 
     CreateWindowExW(0, L"STATIC", L"Sortie:", WS_CHILD | WS_VISIBLE,
@@ -417,12 +542,24 @@ static void redimensionner_controles(HWND hwnd) {
     int largeur = rc.right - rc.left;
     int hauteur = rc.bottom - rc.top;
 
-    int y = 0;
-    int h_editeur = (int)(hauteur * 0.6);
+    SendMessageW(g_barre_outils, TB_AUTOSIZE, 0, 0);
+    RECT rc_outils;
+    GetWindowRect(g_barre_outils, &rc_outils);
+    int h_outils = rc_outils.bottom - rc_outils.top;
+    MoveWindow(g_barre_outils, 0, 0, largeur, h_outils, TRUE);
+
+    SendMessageW(g_barre_etat, WM_SIZE, 0, 0);
+    RECT rc_etat;
+    GetWindowRect(g_barre_etat, &rc_etat);
+    int h_etat = rc_etat.bottom - rc_etat.top;
+
+    int y = h_outils;
+    int zone_utile = hauteur - h_outils - h_etat;
+    int h_editeur = (int)(zone_utile * 0.6);
     MoveWindow(g_editeur, 0, y, largeur, h_editeur, TRUE);
     y += h_editeur;
 
-    int h_sortie = hauteur - y - 44;
+    int h_sortie = zone_utile - h_editeur - 44;
     if (h_sortie < 50) h_sortie = 50;
     MoveWindow(g_sortie, 0, y, largeur, h_sortie, TRUE);
     y += h_sortie;
@@ -435,9 +572,9 @@ static void redimensionner_controles(HWND hwnd) {
 static void mettre_a_jour_titre(HWND hwnd) {
     wchar_t titre[MAX_PATH + 64];
     if (g_chemin_fichier[0] == L'\0') {
-        wcscpy(titre, L"Easy Language 1.0.5 - Editeur [Nouveau fichier]");
+        wcscpy(titre, L"Easy Language 1.0.6 - Editeur [Nouveau fichier]");
     } else {
-        _snwprintf(titre, MAX_PATH + 64, L"Easy Language 1.0.5 - Editeur [%s]", g_chemin_fichier);
+        _snwprintf(titre, MAX_PATH + 64, L"Easy Language 1.0.6 - Editeur [%s]", g_chemin_fichier);
     }
     SetWindowTextW(hwnd, titre);
 }
@@ -448,6 +585,11 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
 
     if ((HWND)lp == g_editeur && notification == EN_CHANGE) {
         colorer_syntaxe(g_editeur);
+        mettre_a_jour_position_curseur();
+        return;
+    }
+    if ((HWND)lp == g_editeur && notification == EN_SELCHANGE) {
+        mettre_a_jour_position_curseur();
         return;
     }
 
@@ -456,10 +598,15 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
             SetWindowTextW(g_editeur, L"");
             g_chemin_fichier[0] = L'\0';
             mettre_a_jour_titre(hwnd);
+            definir_statut(L"Pret");
             break;
         case ID_MENU_OUVRIR:
             ouvrir_fichier();
             mettre_a_jour_titre(hwnd);
+            definir_statut(L"Pret");
+            break;
+        case ID_MENU_RECHERCHER:
+            ouvrir_recherche();
             break;
         case ID_MENU_ENREGISTRER:
             if (!enregistrer_fichier()) { if (enregistrer_sous()) mettre_a_jour_titre(hwnd); }
@@ -486,7 +633,7 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
             break;
         case ID_MENU_APROPOS:
             MessageBoxW(hwnd,
-                L"Easy Language 1.0.5\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
+                L"Easy Language 1.0.6\n\nLangage de programmation interprete en francais.\nFichiers .elg\n\nhttps://github.com/abiyeenzo/easy-language",
                 L"A propos", MB_OK);
             break;
         case ID_ENTREE_COMMANDE:
@@ -549,11 +696,24 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             EnableWindow(g_entree_commande, FALSE);
             if (g_pipe_entree_ecriture) { CloseHandle(g_pipe_entree_ecriture); g_pipe_entree_ecriture = NULL; }
             if (g_processus_courant) g_processus_courant = NULL;
+            definir_statut(wp == 0 ? L"Termine (succes)" : L"Termine (code erreur)");
             return 0;
 
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
+
+        default:
+            if (msg == g_msg_trouver_prochain && g_msg_trouver_prochain != 0) {
+                LPFINDREPLACEW fr = (LPFINDREPLACEW)lp;
+                if (fr->Flags & FR_DIALOGTERM) {
+                    g_dlg_recherche = NULL;
+                } else if (fr->Flags & FR_FINDNEXT) {
+                    rechercher_suivant(fr->lpstrFindWhat);
+                }
+                return 0;
+            }
+            break;
     }
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
@@ -562,6 +722,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
     (void)instance_precedente; (void)ligne_commande;
 
     LoadLibraryW(L"Msftedit.dll");
+
+    INITCOMMONCONTROLSEX icc;
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_BAR_CLASSES;
+    InitCommonControlsEx(&icc);
+
+    g_msg_trouver_prochain = RegisterWindowMessageW(FINDMSGSTRINGW);
 
     HICON icone = LoadIconW(instance, MAKEINTRESOURCEW(IDI_ICONE));
 
@@ -593,10 +760,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
         { FVIRTKEY | FCONTROL, 'N', ID_MENU_NOUVEAU },
         { FVIRTKEY | FCONTROL, 'O', ID_MENU_OUVRIR },
         { FVIRTKEY | FCONTROL, 'S', ID_MENU_ENREGISTRER },
-    }, 5);
+        { FVIRTKEY | FCONTROL, 'F', ID_MENU_RECHERCHER },
+    }, 6);
 
     MSG msg;
     while (GetMessageW(&msg, NULL, 0, 0)) {
+        if (g_dlg_recherche && IsDialogMessageW(g_dlg_recherche, &msg)) continue;
         if (!TranslateAcceleratorW(g_fenetre, table_accel, &msg)) {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);

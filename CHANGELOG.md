@@ -2,6 +2,24 @@
 
 Toutes les versions notables du projet sont documentees ici.
 
+## [1.0.6] - 2026-09-24
+
+### Ajoute
+- Module standard `texte` (`bibliotheque/texte.elg`, natif
+  `c/natifs_texte.c`) : decouper (split), joindre (join), remplacer,
+  majuscules/minuscules, rogner (trim), commence_par/finit_par,
+  sous_texte (substring a indices bornes), inverse, position,
+  contient_texte.
+- Module standard `temps` (`bibliotheque/temps.elg`, natif
+  `c/natifs_temps.c`) : maintenant, annee/mois/jour/heure/minute/seconde,
+  jour_semaine, formater(horodatage motif) via les codes strftime
+  standards.
+- Editeur graphique : barre d'outils (Nouveau, Ouvrir, Enregistrer,
+  Lancer, Deboguer, Rechercher), barre d'etat (etat de l'execution en
+  cours, position ligne/colonne du curseur), recherche de texte
+  (Ctrl+F, boite de dialogue standard Windows).
+- 22 nouveaux tests (`c/tests/test_texte_temps.c`) : 158 au total.
+
 ## [1.0.5] - 2026-09-24
 
 ### Ajoute
