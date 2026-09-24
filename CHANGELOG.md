@@ -16,6 +16,31 @@ Toutes les versions notables du projet sont documentees ici.
   nouvelle).
 
 ### Ajoute
+- **Fermetures (closures).** Une fonction definie a l'interieur d'un bloc
+  (`si`/boucle/appel de fonction) peut desormais etre retournee ou
+  stockee ailleurs et rester appelable apres la fin de ce bloc, en
+  gardant ses variables capturees (y compris plusieurs fermetures
+  independantes issues du meme point du code). Auparavant documente
+  comme une limitation connue. Techniquement : `Environnement` compte
+  maintenant ses references (une par portee enfant, une par fonction
+  qui l'a capture via `environnement_capturer`) et n'est recycle que
+  quand il n'est plus reference, au lieu d'etre detruit
+  inconditionnellement a la fin du bloc. Cout mesure : ~15-20% plus lent
+  sur de la recursion tres intensive (`fib(30)`), negligeable ailleurs.
+  4 nouveaux tests de non-regression.
+- **Ambiguite `3 -4` levee.** Dans une liste d'arguments sans virgule
+  (`affiche`, appels, listes litterales), un `-` precede d'une espace
+  mais colle a l'operande suivant marque desormais le debut d'un nouvel
+  argument plutot qu'une continuation de l'expression courante (meme
+  principe que Ruby pour le meme probleme) : `affiche 3 -4` affiche deux
+  arguments au lieu de calculer `3 - 4`. `affiche 3 - 4` et
+  `affiche 3-4` restent des soustractions, inchangees. Auparavant
+  documente comme une limitation connue (contournement par parentheses).
+  Le lexer garde maintenant, par jeton, si une espace le precedait
+  immediatement. 5 nouveaux tests de non-regression.
+- Editeur graphique : menu Fichier > Fichiers recents (jusqu'a 8,
+  persistes par utilisateur dans le registre Windows HKCU) pour rouvrir
+  rapidement un script recent, avec option pour vider la liste.
 - Module standard `texte` (`bibliotheque/texte.elg`, natif
   `c/natifs_texte.c`) : decouper (split), joindre (join), remplacer,
   majuscules/minuscules, rogner (trim), commence_par/finit_par,
@@ -50,7 +75,7 @@ Toutes les versions notables du projet sont documentees ici.
   modules de la bibliotheque standard disponibles avec une courte
   description de chacun.
 - 40 nouveaux tests (`c/tests/test_texte_temps.c`,
-  `c/tests/test_import_systeme.c`) : 178 au total.
+  `c/tests/test_import_systeme.c`) : 187 au total.
 
 ### Ameliore
 - Reutilisation des `Environnement` (bloc/boucle/appel de fonction) via

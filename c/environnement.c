@@ -5,8 +5,7 @@
 
 /* Pile de reutilisation des Environnement de portee temporaire (bloc,
    boucle, appel de fonction). Ces portees sont creees et detruites en
-   LIFO strict (jamais de fermeture qui survit a son bloc, cf.
-   environnement.h), donc un simple free-list suffit : au lieu de
+   LIFO la plupart du temps, donc un simple free-list suffit : au lieu de
    malloc/free le struct et ses deux tableaux internes a chaque appel
    (jusqu'a 4 allocations par appel de fonction sur un million d'appels
    en recursion, ce qui dominait le temps d'execution en appels systeme
@@ -14,7 +13,19 @@
    tableaux internes compris : leur capacite est deja bonne pour un
    appel de forme similaire, donc la reutilisation evite aussi le
    realloc. La pile grandit au besoin et n'est jamais liberee (comme le
-   reste de la memoire du programme, cf. valeur.h). */
+   reste de la memoire du programme, cf. valeur.h).
+
+   refs (comptage de references) permet a un environnement de survivre a
+   la fin normale de son bloc quand une fermeture l'a capture : chaque
+   environnement_creer prend une reference sur son parent (le lien de
+   portee doit rester valide tant que l'enfant existe), et chaque
+   environnement_capturer en prend une supplementaire au nom d'une
+   FonctionVal qui ne sera jamais liberee. environnement_detruire ne
+   recycle donc reellement l'environnement (et ne libere la reference
+   qu'il tenait sur son parent, en cascade) que lorsque refs retombe a
+   zero : dans le cas courant (aucune fermeture n'a capture ce bloc),
+   c'est immediat, exactement comme avant ; sinon l'environnement reste
+   vivant, atteignable via FonctionVal->env_definition. */
 static Environnement **g_pile = NULL;
 static int g_pile_compte = 0;
 static int g_pile_capacite = 0;
@@ -32,7 +43,13 @@ Environnement *environnement_creer(Environnement *parent) {
         env->valeurs = malloc(sizeof(Valeur) * env->capacite);
     }
     env->parent = parent;
+    env->refs = 1;
+    if (parent) parent->refs++;
     return env;
+}
+
+void environnement_capturer(Environnement *env) {
+    env->refs++;
 }
 
 static int trouver_local(Environnement *env, const char *nom) {
@@ -118,15 +135,27 @@ int environnement_obtenir_cache(Environnement *env, const char *nom, int *niveau
 }
 
 void environnement_detruire(Environnement *env) {
-    /* les noms ne sont plus dupliques (voir environnement_definir), donc
-       rien a liberer a part remettre l'environnement dans la pile de
-       reutilisation pour le prochain environnement_creer */
-    env->compte = 0;
-    if (g_pile_compte >= g_pile_capacite) {
-        g_pile_capacite = g_pile_capacite ? g_pile_capacite * 2 : 64;
-        g_pile = realloc(g_pile, sizeof(Environnement *) * g_pile_capacite);
+    /* boucle plutot que recursion sur env->parent : evite le cout d'appel
+       de fonction pour chaque niveau remonte (rare, mais peut arriver sur
+       une chaine de blocs imbriques), et reste une fonction simple que le
+       compilateur peut inliner sur ses tres nombreux points d'appel. */
+    while (env) {
+        env->refs--;
+        if (env->refs > 0) return; /* encore capture par une fermeture vivante */
+
+        /* les noms ne sont plus dupliques (voir environnement_definir),
+           donc rien a liberer a part remettre l'environnement dans la
+           pile de reutilisation pour le prochain environnement_creer */
+        Environnement *parent = env->parent;
+        env->compte = 0;
+        if (g_pile_compte >= g_pile_capacite) {
+            g_pile_capacite = g_pile_capacite ? g_pile_capacite * 2 : 64;
+            g_pile = realloc(g_pile, sizeof(Environnement *) * g_pile_capacite);
+        }
+        g_pile[g_pile_compte++] = env;
+
+        env = parent;
     }
-    g_pile[g_pile_compte++] = env;
 }
 
 int environnement_assigner(Environnement *env, const char *nom, Valeur v) {

@@ -33,10 +33,10 @@ make tests
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
 binaire `easylang`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
-158 verifications : variables, boucles, fonctions, listes, erreurs, entree
-standard, debogueur, bibliotheque standard (math/os/reseau/gui/texte/temps,
-y compris un aller-retour TCP reel contre un serveur d'echo lance par le
-test lui-meme).
+187 verifications : variables, boucles, fonctions, fermetures, listes,
+erreurs, entree standard, debogueur, bibliotheque standard
+(math/os/reseau/gui/texte/temps, y compris un aller-retour TCP reel
+contre un serveur d'echo lance par le test lui-meme).
 
 ## Utilisation
 
@@ -61,7 +61,9 @@ L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
 lancer `easylang.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
 déboguer, Ctrl+F = rechercher. Une barre d'outils (Nouveau, Ouvrir,
 Enregistrer, Lancer, Déboguer, Rechercher) et une barre d'état (état de
-l'exécution en cours, ligne/colonne du curseur) complètent le menu. Il
+l'exécution en cours, ligne/colonne du curseur) complètent le menu. Menu
+Fichier > Fichiers récents (jusqu'à 8, persistés par utilisateur dans le
+registre Windows, HKCU) pour rouvrir rapidement un script. Il
 vérifie automatiquement (via l'API GitHub Releases, en tâche de fond, au
 démarrage) si une nouvelle version est disponible, et propose d'ouvrir la
 page de téléchargement le cas échéant (menu Aide > Vérifier les mises à
@@ -272,20 +274,41 @@ Ces fonctions natives sont aussi appelables directement sans import
 
 ## Limitations connues
 
-- Comme il n'y a pas de virgule, un argument multi-mots contenant un `+`/`-`
-  en tête peut être avalé par l'expression précédente (ex: `affiche 3 -4`
-  est lu comme `3 - 4`, pas deux arguments). Utilisez des parenthèses pour
-  lever l'ambiguïté : `affiche 3 (-4)`.
-- **Pas de fermetures (closures) au-dela de la duree de vie d'un bloc.**
-  La version C libere la memoire d'une portee (bloc `si`/boucle/appel de
-  fonction) des qu'elle se termine, pour rester rapide sans ramasse-miettes.
-  Definir une fonction a l'interieur d'un bloc puis l'appeler apres coup
-  n'est donc pas garanti fonctionner ; definissez les fonctions au niveau
-  superieur du fichier.
 - L'éditeur graphique (Win32) n'a pas pu être testé visuellement dans cet
   environnement de developpement (pas de Windows/Wine disponible) ; sa
   compilation croisee reussit sans erreur, mais un test manuel sur une
   vraie machine Windows est recommande.
+
+Deux anciennes limitations de cette section ont ete corrigees :
+
+- **Fermetures (closures).** Une fonction definie a l'interieur d'un bloc
+  (`si`/boucle/appel de fonction) peut maintenant etre retournee ou
+  stockee ailleurs et rester appelable, en gardant ses variables
+  capturees, meme apres la fin de ce bloc :
+  ```
+  fonction creer_compteur():
+      soit n = 0
+      fonction incrementer():
+          n = n + 1
+          retourne n
+      retourne incrementer
+
+  soit compte = creer_compteur()
+  affiche compte()   # 1
+  affiche compte()   # 2
+  ```
+  Techniquement : chaque `Environnement` compte ses references (une par
+  portee enfant, plus une par fonction qui l'a capture) et n'est recycle
+  que lorsqu'il n'est plus reference nulle part, au lieu d'etre detruit
+  inconditionnellement a la fin du bloc. Cout mesure : ~15-20% plus lent
+  sur de la recursion tres intensive (`fib(30)`) ; negligeable ailleurs.
+- **Ambiguite `3 -4`.** Un `-` precede d'une espace mais colle a
+  l'operande suivant (aucune espace apres) marque desormais le debut
+  d'un nouvel argument plutot qu'une continuation de l'expression
+  courante (meme principe que Ruby pour le meme probleme) :
+  `affiche 3 -4` affiche maintenant deux arguments (`3 -4`), alors que
+  `affiche 3 - 4` et `affiche 3-4` (espaces des deux cotes, ou aucune)
+  restent des soustractions (`-1`), inchangees.
 
 ## Performance
 

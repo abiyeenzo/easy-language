@@ -204,9 +204,26 @@ static Noeud *addition(Analyseur *a) {
     Noeud *g = terme(a);
     for (;;) {
         Operateur op;
-        if (correspond(a, T_PLUS)) op = OP_PLUS;
-        else if (correspond(a, T_MOINS)) op = OP_MOINS;
-        else break;
+        if (correspond(a, T_PLUS)) {
+            op = OP_PLUS;
+        } else if (correspond(a, T_MOINS)) {
+            /* Sans virgule dans les listes d'arguments (affiche, appels,
+               listes litterales), "3 -4" etait avale comme une seule
+               soustraction "3 - 4" plutot que lu comme deux elements (3
+               et -4). On distingue maintenant par l'espacement, comme
+               Ruby le fait pour le meme probleme : un '-' precede d'une
+               espace mais colle a l'operande suivant (aucune espace
+               apres) marque le debut d'un nouvel element a la place
+               d'une continuation de l'expression courante. "3 - 4"
+               (espaces des deux cotes) et "3-4" (aucune espace) restent
+               des soustractions, inchangees. */
+            Jeton *moins = actuel(a);
+            Jeton *apres = &a->jetons[a->position + 1];
+            if (moins->espace_avant && !apres->espace_avant) break;
+            op = OP_MOINS;
+        } else {
+            break;
+        }
         int ligne = avancer(a).ligne;
         g = binaire(g, op, terme(a), ligne);
     }

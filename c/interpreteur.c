@@ -771,6 +771,7 @@ static Resultat executer_instruction(Noeud *n, Environnement *env) {
             f->bloc = n->bloc;
             f->nb_instructions = n->nb_bloc;
             f->env_definition = env;
+            environnement_capturer(env);
             environnement_definir(env, n->nom, valeur_fonction(f));
             return resultat_normal();
         }

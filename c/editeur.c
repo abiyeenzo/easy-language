@@ -49,6 +49,9 @@
 #define ID_MENU_APROPOS 208
 #define ID_MENU_RECHERCHER 209
 #define ID_MENU_VERIFIER_MAJ 210
+#define ID_MENU_RECENT_EFFACER 298
+#define ID_MENU_RECENT_BASE 300
+#define MAX_FICHIERS_RECENTS 8
 
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
 #define WM_APP_PROCESSUS_TERMINE (WM_APP + 2)
@@ -63,6 +66,9 @@ static UINT g_msg_trouver_prochain = 0;
 static FINDREPLACEW g_fr;
 static wchar_t g_recherche[256] = L"";
 static wchar_t g_chemin_fichier[MAX_PATH] = L"";
+static HMENU g_menu_recents = NULL;
+static wchar_t g_fichiers_recents[MAX_FICHIERS_RECENTS][MAX_PATH];
+static int g_nb_fichiers_recents = 0;
 static HANDLE g_pipe_entree_ecriture = NULL;
 static HANDLE g_processus_courant = NULL;
 static volatile BOOL g_processus_actif = FALSE;
@@ -484,6 +490,124 @@ static void lancer_processus(const wchar_t *nom_exe, const wchar_t *argument_sup
     CloseHandle(pi.hThread);
 }
 
+/* ------------------------------------------------------------------ */
+/* fichiers recents (persistes dans le registre HKCU, par utilisateur) */
+
+#define CLE_REGISTRE_RECENTS L"Software\\EasyLanguage\\Editeur"
+#define VALEUR_REGISTRE_RECENTS L"FichiersRecents"
+
+static void charger_fichiers_recents(void) {
+    g_nb_fichiers_recents = 0;
+    HKEY cle;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, CLE_REGISTRE_RECENTS, 0, KEY_READ, &cle) != ERROR_SUCCESS) return;
+
+    wchar_t tampon[MAX_FICHIERS_RECENTS * MAX_PATH];
+    DWORD taille = sizeof(tampon);
+    DWORD type;
+    if (RegQueryValueExW(cle, VALEUR_REGISTRE_RECENTS, NULL, &type, (LPBYTE)tampon, &taille) == ERROR_SUCCESS && type == REG_MULTI_SZ) {
+        wchar_t *p = tampon;
+        while (*p && g_nb_fichiers_recents < MAX_FICHIERS_RECENTS) {
+            wcsncpy(g_fichiers_recents[g_nb_fichiers_recents], p, MAX_PATH - 1);
+            g_fichiers_recents[g_nb_fichiers_recents][MAX_PATH - 1] = L'\0';
+            g_nb_fichiers_recents++;
+            p += wcslen(p) + 1;
+        }
+    }
+    RegCloseKey(cle);
+}
+
+static void sauvegarder_fichiers_recents(void) {
+    HKEY cle;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, CLE_REGISTRE_RECENTS, 0, NULL, 0, KEY_WRITE, NULL, &cle, NULL) != ERROR_SUCCESS) return;
+
+    /* format REG_MULTI_SZ : chaines terminees par '\0', l'ensemble termine par un '\0' supplementaire */
+    wchar_t tampon[MAX_FICHIERS_RECENTS * MAX_PATH];
+    size_t position = 0;
+    for (int i = 0; i < g_nb_fichiers_recents; i++) {
+        size_t longueur = wcslen(g_fichiers_recents[i]) + 1;
+        memcpy(tampon + position, g_fichiers_recents[i], longueur * sizeof(wchar_t));
+        position += longueur;
+    }
+    tampon[position++] = L'\0';
+
+    RegSetValueExW(cle, VALEUR_REGISTRE_RECENTS, 0, REG_MULTI_SZ, (const BYTE *)tampon, (DWORD)(position * sizeof(wchar_t)));
+    RegCloseKey(cle);
+}
+
+static void reconstruire_menu_recents(void) {
+    if (!g_menu_recents) return;
+    while (GetMenuItemCount(g_menu_recents) > 0) {
+        RemoveMenu(g_menu_recents, 0, MF_BYPOSITION);
+    }
+
+    if (g_nb_fichiers_recents == 0) {
+        AppendMenuW(g_menu_recents, MF_STRING | MF_GRAYED, 0, L"(aucun)");
+        return;
+    }
+
+    for (int i = 0; i < g_nb_fichiers_recents; i++) {
+        const wchar_t *nom_fichier = wcsrchr(g_fichiers_recents[i], L'\\');
+        nom_fichier = nom_fichier ? nom_fichier + 1 : g_fichiers_recents[i];
+        wchar_t etiquette[MAX_PATH + 8];
+        _snwprintf(etiquette, MAX_PATH + 8, L"&%d %s", i + 1, nom_fichier);
+        AppendMenuW(g_menu_recents, MF_STRING, ID_MENU_RECENT_BASE + i, etiquette);
+    }
+    AppendMenuW(g_menu_recents, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(g_menu_recents, MF_STRING, ID_MENU_RECENT_EFFACER, L"Effacer la liste");
+}
+
+static void ajouter_fichier_recent(const wchar_t *chemin) {
+    /* retire toute entree existante pour ce chemin (comparaison sans la
+       casse : les chemins Windows ne sont pas sensibles a la casse), pour
+       la remonter en tete plutot que la dupliquer */
+    int existant = -1;
+    for (int i = 0; i < g_nb_fichiers_recents; i++) {
+        if (_wcsicmp(g_fichiers_recents[i], chemin) == 0) { existant = i; break; }
+    }
+    int fin = (existant >= 0) ? existant : (g_nb_fichiers_recents < MAX_FICHIERS_RECENTS ? g_nb_fichiers_recents : MAX_FICHIERS_RECENTS - 1);
+    for (int i = fin; i > 0; i--) {
+        wcsncpy(g_fichiers_recents[i], g_fichiers_recents[i - 1], MAX_PATH);
+    }
+    wcsncpy(g_fichiers_recents[0], chemin, MAX_PATH - 1);
+    g_fichiers_recents[0][MAX_PATH - 1] = L'\0';
+    if (existant < 0 && g_nb_fichiers_recents < MAX_FICHIERS_RECENTS) g_nb_fichiers_recents++;
+
+    sauvegarder_fichiers_recents();
+    reconstruire_menu_recents();
+}
+
+static void effacer_fichiers_recents(void) {
+    g_nb_fichiers_recents = 0;
+    sauvegarder_fichiers_recents();
+    reconstruire_menu_recents();
+}
+
+/* Charge le contenu d'un fichier .elg dans l'editeur. Partagee par
+   "Ouvrir..." (boite de dialogue standard) et le menu "Fichiers recents". */
+static BOOL charger_fichier(const wchar_t *chemin) {
+    HANDLE f = CreateFileW(chemin, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (f == INVALID_HANDLE_VALUE) return FALSE;
+    DWORD taille = GetFileSize(f, NULL);
+    char *utf8 = malloc(taille + 1);
+    DWORD lu;
+    ReadFile(f, utf8, taille, &lu, NULL);
+    utf8[lu] = '\0';
+    CloseHandle(f);
+
+    int longueur_large = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+    wchar_t *large = malloc(sizeof(wchar_t) * longueur_large);
+    MultiByteToWideChar(CP_UTF8, 0, utf8, -1, large, longueur_large);
+    SetWindowTextW(g_editeur, large);
+    free(utf8);
+    free(large);
+
+    wcsncpy(g_chemin_fichier, chemin, MAX_PATH - 1);
+    g_chemin_fichier[MAX_PATH - 1] = L'\0';
+    colorer_syntaxe(g_editeur);
+    ajouter_fichier_recent(chemin);
+    return TRUE;
+}
+
 static BOOL enregistrer_fichier(void) {
     if (g_chemin_fichier[0] == L'\0') return FALSE;
 
@@ -520,7 +644,9 @@ static BOOL enregistrer_sous(void) {
 
     if (!GetSaveFileNameW(&ofn)) return FALSE;
     wcsncpy(g_chemin_fichier, tampon, MAX_PATH);
-    return enregistrer_fichier();
+    BOOL ok = enregistrer_fichier();
+    if (ok) ajouter_fichier_recent(g_chemin_fichier);
+    return ok;
 }
 
 static void ouvrir_fichier(void) {
@@ -535,25 +661,9 @@ static void ouvrir_fichier(void) {
     ofn.Flags = OFN_FILEMUSTEXIST;
 
     if (!GetOpenFileNameW(&ofn)) return;
-
-    HANDLE f = CreateFileW(tampon, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (f == INVALID_HANDLE_VALUE) return;
-    DWORD taille = GetFileSize(f, NULL);
-    char *utf8 = malloc(taille + 1);
-    DWORD lu;
-    ReadFile(f, utf8, taille, &lu, NULL);
-    utf8[lu] = '\0';
-    CloseHandle(f);
-
-    int longueur_large = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
-    wchar_t *large = malloc(sizeof(wchar_t) * longueur_large);
-    MultiByteToWideChar(CP_UTF8, 0, utf8, -1, large, longueur_large);
-    SetWindowTextW(g_editeur, large);
-    free(utf8);
-    free(large);
-
-    wcsncpy(g_chemin_fichier, tampon, MAX_PATH);
-    colorer_syntaxe(g_editeur);
+    if (!charger_fichier(tampon)) {
+        MessageBoxW(g_fenetre, L"Impossible d'ouvrir ce fichier.", L"Erreur", MB_ICONERROR);
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -565,6 +675,8 @@ static void creer_menu(HWND hwnd) {
     HMENU menu_fichier = CreatePopupMenu();
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_NOUVEAU, L"Nouveau\tCtrl+N");
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_OUVRIR, L"Ouvrir...\tCtrl+O");
+    g_menu_recents = CreatePopupMenu();
+    AppendMenuW(menu_fichier, MF_POPUP, (UINT_PTR)g_menu_recents, L"Fichiers recents");
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_ENREGISTRER, L"Enregistrer\tCtrl+S");
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_ENREGISTRER_SOUS, L"Enregistrer sous...");
     AppendMenuW(menu_fichier, MF_SEPARATOR, 0, NULL);
@@ -710,6 +822,25 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
         return;
     }
 
+    if (id >= ID_MENU_RECENT_BASE && id < ID_MENU_RECENT_BASE + MAX_FICHIERS_RECENTS) {
+        int index = id - ID_MENU_RECENT_BASE;
+        if (index < g_nb_fichiers_recents) {
+            if (!charger_fichier(g_fichiers_recents[index])) {
+                MessageBoxW(hwnd, L"Ce fichier n'existe plus, retire de la liste.", L"Fichiers recents", MB_ICONWARNING);
+                for (int i = index; i < g_nb_fichiers_recents - 1; i++) {
+                    wcsncpy(g_fichiers_recents[i], g_fichiers_recents[i + 1], MAX_PATH);
+                }
+                g_nb_fichiers_recents--;
+                sauvegarder_fichiers_recents();
+                reconstruire_menu_recents();
+            } else {
+                mettre_a_jour_titre(hwnd);
+                definir_statut(L"Pret");
+            }
+        }
+        return;
+    }
+
     switch (id) {
         case ID_MENU_NOUVEAU:
             SetWindowTextW(g_editeur, L"");
@@ -756,6 +887,9 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
         case ID_MENU_VERIFIER_MAJ:
             lancer_verification_maj(FALSE);
             break;
+        case ID_MENU_RECENT_EFFACER:
+            effacer_fichiers_recents();
+            break;
         case ID_ENTREE_COMMANDE:
             if (notification == EN_CHANGE) break;
             break;
@@ -794,6 +928,8 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
             creer_controles(hwnd);
             g_proc_originale_commande = (WNDPROC)SetWindowLongPtrW(g_entree_commande, GWLP_WNDPROC, (LONG_PTR)proc_entree_commande);
             mettre_a_jour_titre(hwnd);
+            charger_fichiers_recents();
+            reconstruire_menu_recents();
             lancer_verification_maj(TRUE);
             return 0;
 

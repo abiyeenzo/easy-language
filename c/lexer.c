@@ -53,9 +53,10 @@ static const Symbole SYMBOLES[] = {
 static void tokeniser_contenu(ListeJetons *l, const char *contenu, int ligne) {
     int i = 0;
     int n = (int)strlen(contenu);
+    int espace_vu = 0;
     while (i < n) {
         char c = contenu[i];
-        if (c == ' ') { i++; continue; }
+        if (c == ' ') { i++; espace_vu = 1; continue; }
 
         if (c == '"') {
             int j = i + 1;
@@ -77,6 +78,8 @@ static void tokeniser_contenu(ListeJetons *l, const char *contenu, int ligne) {
             tampon[t] = '\0';
             Jeton jt = jeton_simple(T_TEXTE, ligne);
             jt.texte = strdup(tampon);
+            jt.espace_avant = espace_vu;
+            espace_vu = 0;
             ajouter(l, jt);
             i = j + 1;
             continue;
@@ -101,6 +104,8 @@ static void tokeniser_contenu(ListeJetons *l, const char *contenu, int ligne) {
                 jt = jeton_simple(T_NOMBRE_ENTIER, ligne);
                 jt.entier = atoll(brut);
             }
+            jt.espace_avant = espace_vu;
+            espace_vu = 0;
             ajouter(l, jt);
             i = j;
             continue;
@@ -120,6 +125,8 @@ static void tokeniser_contenu(ListeJetons *l, const char *contenu, int ligne) {
             }
             Jeton jt = jeton_simple(type_trouve, ligne);
             if (type_trouve == T_IDENT) jt.texte = strdup(mot);
+            jt.espace_avant = espace_vu;
+            espace_vu = 0;
             ajouter(l, jt);
             i = j;
             continue;
@@ -129,7 +136,10 @@ static void tokeniser_contenu(ListeJetons *l, const char *contenu, int ligne) {
         for (size_t k = 0; k < NB_SYMBOLES; k++) {
             size_t sl = strlen(SYMBOLES[k].sym);
             if (strncmp(contenu + i, SYMBOLES[k].sym, sl) == 0) {
-                ajouter(l, jeton_simple(SYMBOLES[k].type, ligne));
+                Jeton jt = jeton_simple(SYMBOLES[k].type, ligne);
+                jt.espace_avant = espace_vu;
+                espace_vu = 0;
+                ajouter(l, jt);
                 i += (int)sl;
                 trouve = 1;
                 break;

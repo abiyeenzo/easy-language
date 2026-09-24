@@ -242,6 +242,111 @@ static void test_portee_locale(void) {
     executer_script_liberer(r);
 }
 
+/* --- fermetures (closures) : une fonction definie a l'interieur d'un
+   bloc/appel doit rester appelable et garder ses variables capturees
+   apres la fin de ce bloc, chaque fermeture ayant son propre etat
+   independant meme quand elle vient du meme point du code. */
+
+static void test_fermeture_survit_a_son_appel(void) {
+    ResultatExecution r = X(
+        "fonction creer_compteur():\n"
+        "    soit n = 0\n"
+        "    fonction incrementer():\n"
+        "        n = n + 1\n"
+        "        retourne n\n"
+        "    retourne incrementer\n"
+        "soit compte = creer_compteur()\n"
+        "affiche compte()\n"
+        "affiche compte()\n"
+        "affiche compte()\n");
+    VERIFIER_EGAL_STR(r.sortie, "1\n2\n3\n");
+    executer_script_liberer(r);
+}
+
+static void test_fermetures_independantes(void) {
+    ResultatExecution r = X(
+        "fonction creer_compteur():\n"
+        "    soit n = 0\n"
+        "    fonction incrementer():\n"
+        "        n = n + 1\n"
+        "        retourne n\n"
+        "    retourne incrementer\n"
+        "soit a = creer_compteur()\n"
+        "soit b = creer_compteur()\n"
+        "affiche a()\n"
+        "affiche a()\n"
+        "affiche b()\n"
+        "affiche a()\n");
+    VERIFIER_EGAL_STR(r.sortie, "1\n2\n1\n3\n");
+    executer_script_liberer(r);
+}
+
+static void test_fermeture_survit_a_son_bloc_si(void) {
+    ResultatExecution r = X(
+        "soit rappel = rien\n"
+        "si vrai alors:\n"
+        "    soit secret = 42\n"
+        "    fonction devoiler():\n"
+        "        retourne secret\n"
+        "    rappel = devoiler\n"
+        "affiche rappel()\n");
+    VERIFIER_EGAL_STR(r.sortie, "42\n");
+    executer_script_liberer(r);
+}
+
+/* --- ambiguite '-' unaire vs soustraction dans une liste d'arguments
+   sans virgule : "3 -4" doit lire deux elements (3 et -4), distingue de
+   "3 - 4" et "3-4" qui restent des soustractions, par la presence d'une
+   espace avant le '-' et son absence juste apres (comme Ruby). --- */
+
+static void test_moins_espace_avant_lu_comme_deux_arguments(void) {
+    ResultatExecution r = X("affiche 3 -4\n");
+    VERIFIER_EGAL_STR(r.sortie, "3 -4\n");
+    executer_script_liberer(r);
+}
+
+static void test_moins_espaces_des_deux_cotes_reste_soustraction(void) {
+    ResultatExecution r = X("affiche 3 - 4\n");
+    VERIFIER_EGAL_STR(r.sortie, "-1\n");
+    executer_script_liberer(r);
+}
+
+static void test_moins_sans_espace_reste_soustraction(void) {
+    ResultatExecution r = X("affiche 3-4\n");
+    VERIFIER_EGAL_STR(r.sortie, "-1\n");
+    executer_script_liberer(r);
+}
+
+static void test_moins_double_reste_soustraction_de_negatif(void) {
+    ResultatExecution r = X("affiche 3 - -4\n");
+    VERIFIER_EGAL_STR(r.sortie, "7\n");
+    executer_script_liberer(r);
+}
+
+static void test_moins_unaire_directement_en_argument_de_fonction(void) {
+    /* motive par un cas reel : sous_texte("bonjour" -5 3) devait
+       auparavant passer par une variable intermediaire pour eviter que
+       "bonjour" - 5 soit tente (erreur de type) */
+    ResultatExecution r = X("affiche sous_texte(\"bonjour\" -5 3)\n");
+    VERIFIER_EGAL_STR(r.sortie, "bon\n");
+    executer_script_liberer(r);
+}
+
+static void test_fermetures_imbriquees_avec_parametre(void) {
+    ResultatExecution r = X(
+        "fonction fabrique(depart):\n"
+        "    fonction ajouter(x):\n"
+        "        retourne depart + x\n"
+        "    retourne ajouter\n"
+        "soit plus5 = fabrique(5)\n"
+        "soit plus10 = fabrique(10)\n"
+        "affiche plus5(1)\n"
+        "affiche plus10(1)\n"
+        "affiche plus5(100)\n");
+    VERIFIER_EGAL_STR(r.sortie, "6\n11\n105\n");
+    executer_script_liberer(r);
+}
+
 /* --- listes --- */
 
 static void test_liste_litterale_et_affichage(void) {
@@ -404,6 +509,15 @@ int main(void) {
     test_mauvaise_arite();
     test_appel_non_fonction();
     test_portee_locale();
+    test_fermeture_survit_a_son_appel();
+    test_fermetures_independantes();
+    test_fermeture_survit_a_son_bloc_si();
+    test_fermetures_imbriquees_avec_parametre();
+    test_moins_espace_avant_lu_comme_deux_arguments();
+    test_moins_espaces_des_deux_cotes_reste_soustraction();
+    test_moins_sans_espace_reste_soustraction();
+    test_moins_double_reste_soustraction_de_negatif();
+    test_moins_unaire_directement_en_argument_de_fonction();
 
     test_liste_litterale_et_affichage();
     test_indexation_lecture();

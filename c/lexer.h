@@ -24,6 +24,11 @@ typedef struct {
     long long entier;   /* pour T_NOMBRE_ENTIER */
     double reel;         /* pour T_NOMBRE_REEL */
     int ligne;
+    /* Y avait-il au moins une espace immediatement avant ce jeton (sur la
+       meme ligne) ? Sert uniquement a lever l'ambiguite d'un '-' unaire
+       colle a l'operande suivant apres un espace (voir analyseur.c,
+       "3 -4" lu comme deux arguments plutot qu'une soustraction). */
+    int espace_avant;
 } Jeton;
 
 typedef struct {

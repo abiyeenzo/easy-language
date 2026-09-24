@@ -49,7 +49,7 @@ easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debog
 	$(WINCC) $(CFLAGS) -o $@ debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o $(LDFLAGS) $(WINLIBS)
 
 easy_editeur.exe: editeur.c ressources_editeur.o
-	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ editeur.c ressources_editeur.o -lcomctl32 -lcomdlg32 -lgdi32 -luser32 -lkernel32 -lwinhttp -lshell32
+	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ editeur.c ressources_editeur.o -lcomctl32 -lcomdlg32 -lgdi32 -luser32 -lkernel32 -lwinhttp -lshell32 -ladvapi32
 
 tests: easylang easy_debogueur
 	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/test_natifs.c tests/test_texte_temps.c tests/test_import_systeme.c tests/aide.c
