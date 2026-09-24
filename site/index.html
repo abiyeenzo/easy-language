@@ -6,179 +6,423 @@
 <title>Easy Language</title>
 <link rel="icon" type="image/png" href="assets/logo.png">
 <style>
+  :root {
+    --violet-fonce: #3a2159;
+    --violet: #5b2f86;
+    --violet-clair: #7c4bb0;
+    --corail: #d97e56;
+    --texte: #201a2b;
+    --texte-attenue: #5c5468;
+    --fond: #ffffff;
+    --fond-alterne: #f7f5fa;
+    --bordure: #e4dfec;
+  }
+  * { box-sizing: border-box; }
   body {
-    max-width: 760px;
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", system-ui, Arial, sans-serif;
+    color: var(--texte);
+    background: var(--fond);
+    line-height: 1.6;
+  }
+  .colonne {
+    max-width: 800px;
     margin: 0 auto;
-    padding: 24px 16px 64px;
-    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-    color: #222;
-    background: #fff;
-    line-height: 1.55;
+    padding: 0 20px;
   }
-  h1, h2 {
-    font-family: Consolas, "Courier New", monospace;
-  }
-  h1 { font-size: 1.9rem; margin-bottom: 4px; }
-  .tagline { color: #555; margin-top: 0; }
-  h2 {
-    font-size: 1.2rem;
-    margin-top: 40px;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 4px;
-  }
-  a { color: #0a5cb8; }
+  a { color: var(--violet); text-decoration: none; }
+  a:hover { text-decoration: underline; }
   code, pre {
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 0.9rem;
+    font-family: Consolas, "Cascadia Code", "Courier New", monospace;
+  }
+  code {
+    background: var(--fond-alterne);
+    border: 1px solid var(--bordure);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.9em;
   }
   pre {
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 14px 16px;
+    background: #221533;
+    color: #ece7f5;
+    border-radius: 8px;
+    padding: 16px 18px;
     overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.55;
   }
-  .kw { color: #a626a4; font-weight: bold; }
-  .str { color: #50a14f; }
-  .com { color: #999; font-style: italic; }
-  .nav {
-    margin-bottom: 20px;
-    font-size: 0.9rem;
+  pre code { background: none; border: none; padding: 0; color: inherit; }
+  .kw { color: #d9a8ff; font-weight: 600; }
+  .str { color: #f2c299; }
+  .com { color: #8f83a3; font-style: italic; }
+
+  /* barre de navigation */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--bordure);
+    z-index: 10;
   }
-  .nav a { margin-right: 14px; }
-  .telecharger {
-    margin-top: 40px;
-    padding: 18px 20px;
-    background: #f8f8f8;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-  }
-  .telecharger h2 { margin-top: 0; border: none; }
-  .telecharger ul { padding-left: 20px; margin-bottom: 0; }
-  .telecharger li { margin-bottom: 6px; }
-  details {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px 14px;
-    margin-bottom: 8px;
-  }
-  summary {
-    cursor: pointer;
-    font-weight: bold;
-    font-family: Consolas, "Courier New", monospace;
-  }
-  footer {
-    margin-top: 50px;
-    padding-top: 16px;
-    border-top: 1px solid #ddd;
-    color: #777;
-    font-size: 0.85rem;
-  }
-  .entete {
+  nav .colonne {
     display: flex;
     align-items: center;
+    gap: 24px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    max-width: 900px;
+  }
+  nav .marque {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--texte);
+    margin-right: auto;
+  }
+  nav .marque img { width: 26px; height: 26px; border-radius: 6px; }
+  nav a.lien { color: var(--texte-attenue); font-size: 0.92rem; font-weight: 500; }
+  nav a.lien:hover { color: var(--violet); text-decoration: none; }
+  nav a.bouton {
+    background: var(--violet);
+    color: #fff;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  nav a.bouton:hover { background: var(--violet-clair); text-decoration: none; }
+
+  /* heros */
+  .heros {
+    background: linear-gradient(155deg, var(--violet-fonce), var(--violet) 60%, var(--violet-clair));
+    color: #fff;
+    padding: 56px 0 48px;
+  }
+  .heros .colonne { max-width: 900px; }
+  .heros-entete { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
+  .heros-entete img { width: 56px; height: 56px; border-radius: 13px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+  .heros h1 { font-size: 2.2rem; margin: 0; }
+  .heros p.tagline { font-size: 1.08rem; color: #e7defa; max-width: 60ch; margin: 0 0 26px; }
+  .heros-boutons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .bouton-principal, .bouton-secondaire {
+    display: inline-block;
+    padding: 11px 20px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .bouton-principal { background: var(--corail); color: #241105; }
+  .bouton-principal:hover { background: #e69269; text-decoration: none; }
+  .bouton-secondaire { background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+  .bouton-secondaire:hover { background: rgba(255,255,255,0.22); text-decoration: none; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 44px 0; border-bottom: 1px solid var(--bordure); }
+  section:last-of-type { border-bottom: none; }
+  h2 {
+    font-size: 1.35rem;
+    margin: 0 0 6px;
+  }
+  .soustitre { color: var(--texte-attenue); margin: 0 0 24px; font-size: 0.96rem; }
+
+  .grille-fonctionnalites {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
-  .entete img {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
+  @media (max-width: 640px) { .grille-fonctionnalites { grid-template-columns: 1fr; } }
+  .fonctionnalite {
+    border: 1px solid var(--bordure);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: var(--fond-alterne);
   }
-  .entete h1 { margin: 0; }
+  .fonctionnalite strong { display: block; margin-bottom: 4px; color: var(--violet-fonce); }
+  .fonctionnalite p { margin: 0; font-size: 0.92rem; color: var(--texte-attenue); }
+
+  details {
+    border: 1px solid var(--bordure);
+    border-radius: 8px;
+    padding: 4px 18px 14px;
+    margin-bottom: 10px;
+    background: var(--fond);
+  }
+  details[open] { background: var(--fond-alterne); }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 12px 0;
+    color: var(--violet-fonce);
+  }
+  details p { font-size: 0.94rem; color: var(--texte-attenue); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  table td, table th { border: 1px solid var(--bordure); padding: 7px 10px; text-align: left; }
+  table th { background: var(--fond-alterne); }
+
+  .telecharger-principal {
+    background: linear-gradient(160deg, var(--fond-alterne), #fff);
+    border: 1px solid var(--bordure);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+  .telecharger-principal .etiquette {
+    display: inline-block;
+    background: var(--corail);
+    color: #241105;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+  }
+  .telecharger-principal h3 { margin: 0 0 6px; font-size: 1.15rem; }
+  .telecharger-principal p { margin: 0 0 14px; color: var(--texte-attenue); font-size: 0.94rem; }
+  .liste-secondaire { list-style: none; padding: 0; margin: 0; }
+  .liste-secondaire li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--bordure);
+    font-size: 0.92rem;
+  }
+  .liste-secondaire li:last-child { border-bottom: none; }
+  .liste-secondaire .desc { color: var(--texte-attenue); flex: 1; }
+
+  .politique {
+    background: var(--fond-alterne);
+    border: 1px solid var(--bordure);
+    border-radius: 8px;
+    padding: 20px 22px;
+    font-size: 0.93rem;
+    color: var(--texte-attenue);
+  }
+  .politique h3 { margin: 18px 0 6px; font-size: 1rem; color: var(--texte); }
+  .politique h3:first-child { margin-top: 0; }
+  .politique ul { margin: 6px 0; padding-left: 20px; }
+  .politique .copyright { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bordure); font-size: 0.88rem; }
+
+  footer {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--texte-attenue);
+    font-size: 0.85rem;
+  }
 </style>
 </head>
 <body>
 
-<div class="nav">
-  <a href="#fonctionnalites">Fonctionnalites</a>
-  <a href="#documentation">Documentation</a>
-  <a href="#telecharger">Telecharger</a>
-  <a href="https://github.com/abiyeenzo/easy-language">GitHub</a>
+<nav>
+  <div class="colonne">
+    <div class="marque"><img src="assets/logo.png" alt=""> Easy Language</div>
+    <a class="lien" href="#fonctionnalites">Fonctionnalites</a>
+    <a class="lien" href="#documentation">Documentation</a>
+    <a class="lien" href="#licence">Licence</a>
+    <a class="lien" href="https://github.com/abiyeenzo/easy-language">GitHub</a>
+    <a class="bouton" href="#telecharger">Telecharger</a>
+  </div>
+</nav>
+
+<div class="heros">
+  <div class="colonne">
+    <div class="heros-entete">
+      <img src="assets/logo.png" alt="Logo Easy Language">
+      <h1>Easy Language</h1>
+    </div>
+    <p class="tagline">Un langage de programmation interprete, avec des mots-cles en francais. Coeur ecrit en C pur, editeur graphique et debogueur inclus, aucune dependance a installer sous Windows.</p>
+    <div class="heros-boutons">
+      <a class="bouton-principal" href="#telecharger">Telecharger pour Windows</a>
+      <a class="bouton-secondaire" href="#documentation">Voir la documentation</a>
+    </div>
+  </div>
 </div>
 
-<div class="entete">
-  <img src="assets/logo.png" alt="Logo Easy Language" width="64" height="64">
-  <h1>Easy Language</h1>
-</div>
-<p class="tagline">Un langage de programmation interprete en C, avec des mots-cles en francais. Pas de point-virgule, pas d'accolade : les blocs sont indentes, comme en Python.</p>
+<main>
 
-<pre><code><span class="com"># exemple : exemples/bonjour.elg</span>
-<span class="kw">soit</span> nom = <span class="str">"monde"</span>
-<span class="kw">affiche</span> <span class="str">"Bonjour"</span> nom
+<section id="fonctionnalites">
+  <h2>Fonctionnalites</h2>
+  <p class="soustitre">Tout ce qu'il faut pour ecrire, executer et deboguer un programme.</p>
+  <div class="grille-fonctionnalites">
+    <div class="fonctionnalite">
+      <strong>Syntaxe en francais</strong>
+      <p>soit, si, sinon, tantque, pour, fonction, retourne, et, ou, non. Blocs delimites par indentation, sans point-virgule ni accolade.</p>
+    </div>
+    <div class="fonctionnalite">
+      <strong>Listes et types integres</strong>
+      <p>Litteraux <code>[1, 2, 3]</code>, indexation, imbrication, fonctions natives <code>ajoute</code>, <code>retire</code>, <code>contient</code>, <code>longueur</code>.</p>
+    </div>
+    <div class="fonctionnalite">
+      <strong>Environ 30 fois plus rapide qu'un equivalent Python</strong>
+      <p>Interpreteur ecrit en C, avec des routines en assembleur x86-64 inline sur l'arithmetique entiere.</p>
+    </div>
+    <div class="fonctionnalite">
+      <strong>Debogueur pas a pas</strong>
+      <p>Points d'arret, execution ligne par ligne, inspection des variables, en ligne de commande et dans l'editeur.</p>
+    </div>
+    <div class="fonctionnalite">
+      <strong>Editeur graphique natif</strong>
+      <p>Coloration syntaxique (Win32/RichEdit), F5 pour lancer, F6 pour deboguer, sans aucune dependance externe.</p>
+    </div>
+    <div class="fonctionnalite">
+      <strong>Installation sans droit administrateur</strong>
+      <p>L'installateur cree les raccourcis, associe les fichiers <code>.elg</code> et propose l'ajout au PATH, entierement dans le profil utilisateur.</p>
+    </div>
+  </div>
+</section>
 
-<span class="kw">fonction</span> carre(x):
-    <span class="kw">retourne</span> x * x
+<section id="documentation">
+  <h2>Documentation</h2>
+  <p class="soustitre">Reference complete de la syntaxe. Cliquez une section pour la deplier.</p>
 
-<span class="kw">pour</span> i <span class="kw">de</span> 1 <span class="kw">jusqua</span> 5 <span class="kw">alors</span>:
-    <span class="kw">affiche</span> <span class="str">"carre de"</span> i <span class="str">"="</span> carre(i)</code></pre>
-
-<h2 id="fonctionnalites">Fonctionnalites</h2>
-<ul>
-  <li><strong>Syntaxe francaise</strong> : soit, si, sinon, tantque, pour, fonction, retourne, et/ou/non...</li>
-  <li><strong>Listes</strong> : <code>[1 2 3]</code>, indexation, imbrication, natives <code>ajoute</code>/<code>retire</code>/<code>contient</code></li>
-  <li><strong>~30x plus rapide</strong> qu'un interpreteur Python equivalent (coeur en C, points chauds en assembleur x86-64 inline)</li>
-  <li><strong>Debogueur</strong> : points d'arret, pas-a-pas, inspection des variables (CLI et dans l'editeur)</li>
-  <li><strong>Editeur graphique natif</strong> : coloration syntaxique (Win32/RichEdit), F5 pour lancer, F6 pour deboguer</li>
-  <li><strong>Zero dependance</strong> : uniquement l'API Windows standard, aucun runtime a installer</li>
-</ul>
-
-<h2 id="documentation">Documentation</h2>
-
-<details open>
-<summary>Variables et affichage</summary>
-<pre><code><span class="kw">soit</span> x = 5
+  <details open>
+  <summary>Variables et affichage</summary>
+  <pre><code><span class="kw">soit</span> x = 5
 x = x + 1
 <span class="kw">affiche</span> <span class="str">"x ="</span> x
-<span class="kw">demande</span> age <span class="str">"Ton age : "</span></code></pre>
-<p><code>soit</code> declare une variable ; une reaffectation se fait sans <code>soit</code>. <code>affiche</code> accepte plusieurs valeurs separees par des espaces. <code>demande</code> convertit automatiquement en nombre quand c'est possible.</p>
-</details>
+<span class="kw">soit</span> nom = <span class="str">"Alice"</span></code></pre>
+  <p><code>soit</code> declare une variable. Une reaffectation se fait sans <code>soit</code>. <code>affiche</code> accepte plusieurs valeurs separees par des espaces.</p>
+  </details>
 
-<details>
-<summary>Conditions et boucles</summary>
-<pre><code><span class="kw">si</span> age &gt;= 18 <span class="kw">alors</span>:
+  <details>
+  <summary>Entree utilisateur (demande)</summary>
+  <pre><code><span class="kw">demande</span>(age, <span class="str">"Ton age : "</span>)
+<span class="kw">affiche</span> <span class="str">"tu as"</span> age <span class="str">"ans"</span></code></pre>
+  <p>La forme sans parentheses (<code>demande age "Ton age : "</code>) reste valide. <code>demande</code> convertit automatiquement l'entree en nombre quand c'est possible, sinon elle garde du texte.</p>
+  </details>
+
+  <details>
+  <summary>Conditions et boucles</summary>
+  <pre><code><span class="kw">si</span> age &gt;= 18 <span class="kw">alors</span>:
     <span class="kw">affiche</span> <span class="str">"majeur"</span>
 <span class="kw">sinon</span>:
     <span class="kw">affiche</span> <span class="str">"mineur"</span>
 
 <span class="kw">pour</span> i <span class="kw">de</span> 10 <span class="kw">jusqua</span> 0 <span class="kw">pas</span> -2 <span class="kw">alors</span>:
     <span class="kw">affiche</span> i</code></pre>
-<p>Blocs indentes apres <code>:</code>. <code>si</code> / <code>sinon si</code> / <code>sinon</code>, <code>tantque</code>, <code>pour ... de ... jusqua ... pas</code>. <code>arrete</code> et <code>continue</code> pour controler les boucles.</p>
-</details>
+  <p>Blocs indentes apres <code>:</code>, comme en Python. <code>si</code> / <code>sinon si</code> / <code>sinon</code>, <code>tantque</code>, <code>pour ... de ... jusqua ... pas</code>. <code>arrete</code> sort d'une boucle, <code>continue</code> passe au tour suivant.</p>
+  </details>
 
-<details>
-<summary>Fonctions</summary>
-<pre><code><span class="kw">fonction</span> fibonacci(n):
+  <details>
+  <summary>Fonctions</summary>
+  <pre><code><span class="kw">fonction</span> fibonacci(n):
     <span class="kw">si</span> n &lt;= 1 <span class="kw">alors</span>:
         <span class="kw">retourne</span> n
     <span class="kw">retourne</span> fibonacci(n - 1) + fibonacci(n - 2)</code></pre>
-<p>Arguments separes par des espaces, jamais des virgules : <code>addition(1 2 3)</code>. Recursion et portees locales fonctionnent normalement.</p>
-</details>
+  <p>Arguments separes par des espaces ou des virgules, au choix : <code>fonction f(a, b):</code> et <code>f(1, 2)</code> ou <code>f(1 2)</code> fonctionnent de la meme facon. Recursion et portees locales prises en charge.</p>
+  </details>
 
-<details>
-<summary>Listes</summary>
-<pre><code><span class="kw">soit</span> fruits = [<span class="str">"pomme"</span> <span class="str">"banane"</span>]
-ajoute(fruits <span class="str">"kiwi"</span>)
+  <details>
+  <summary>Listes</summary>
+  <pre><code><span class="kw">soit</span> fruits = [<span class="str">"pomme"</span>, <span class="str">"banane"</span>]
+ajoute(fruits, <span class="str">"kiwi"</span>)
 <span class="kw">affiche</span> fruits[0]
 
 <span class="kw">pour</span> <span class="kw">chaque</span> f <span class="kw">dans</span> fruits <span class="kw">alors</span>:
     <span class="kw">affiche</span> f</code></pre>
-<p>Elements separes par des espaces entre crochets. Indexation en lecture/ecriture, imbrication, natives <code>ajoute</code>, <code>retire</code>, <code>contient</code>, <code>longueur</code>.</p>
-</details>
+  <p>La virgule est optionnelle dans les litteraux de liste et les appels de fonction (<code>[1 2 3]</code> et <code>[1, 2, 3]</code> sont equivalents). Indexation en lecture et en ecriture, listes imbriquees, natives <code>ajoute</code>, <code>retire</code>, <code>contient</code>, <code>longueur</code>. Une liste litterale ne peut pas etre indexee directement : passez par une variable.</p>
+  </details>
 
-<div class="telecharger">
-<h2 id="telecharger">Telecharger (Windows)</h2>
-<p>Interpreteur, debogueur et editeur ecrits en C, cross-compiles automatiquement par la CI GitHub Actions a chaque release. Aucune dependance a installer. Les trois fichiers doivent rester dans le meme dossier.</p>
-<ul>
-  <li><a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_editeur.exe"><code>easy_editeur.exe</code></a> : editeur graphique (coloration syntaxique, F5 lancer, F6 deboguer). Point de depart recommande.</li>
-  <li><a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_language.exe"><code>easy_language.exe</code></a> : interpreteur, en ligne de commande.</li>
-  <li><a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_debogueur.exe"><code>easy_debogueur.exe</code></a> : debogueur pas-a-pas, en ligne de commande.</li>
-  <li><a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/EasyLanguage-windows.zip"><code>EasyLanguage-windows.zip</code></a> : les trois + les exemples, en un seul telechargement.</li>
-</ul>
-</div>
+  <details>
+  <summary>Types et operateurs</summary>
+  <table>
+    <tr><th>Categorie</th><th>Details</th></tr>
+    <tr><td>Nombres</td><td><code>5</code>, <code>3.14</code></td></tr>
+    <tr><td>Texte</td><td><code>"bonjour"</code></td></tr>
+    <tr><td>Booleens</td><td><code>vrai</code>, <code>faux</code></td></tr>
+    <tr><td>Rien</td><td><code>rien</code></td></tr>
+    <tr><td>Listes</td><td><code>[1, 2, 3]</code></td></tr>
+    <tr><td>Arithmetique</td><td><code>+ - * / %</code> (le <code>+</code> concatene aussi textes et listes)</td></tr>
+    <tr><td>Comparaison</td><td><code>== != &lt; &gt; &lt;= &gt;=</code></td></tr>
+    <tr><td>Logique</td><td><code>et</code>, <code>ou</code>, <code>non</code></td></tr>
+    <tr><td>Fonctions natives</td><td><code>longueur</code>, <code>nombre</code>, <code>entier</code>, <code>texte</code>, <code>ajoute</code>, <code>retire</code>, <code>contient</code></td></tr>
+  </table>
+  </details>
+
+  <details>
+  <summary>Limitations connues</summary>
+  <p>Pas de systeme de modules (<code>importe</code>) dans la version C actuelle. Pas de fermetures au-dela de la duree de vie d'un bloc : une fonction definie a l'interieur d'un <code>si</code> ou d'une boucle doit etre appelee dans ce meme bloc ; definissez vos fonctions au niveau superieur du fichier pour eviter tout probleme.</p>
+  </details>
+</section>
+
+<section id="telecharger">
+  <h2>Telecharger</h2>
+  <p class="soustitre">Genere automatiquement par la CI GitHub Actions a chaque version publiee. Aucune dependance a installer.</p>
+
+  <div class="telecharger-principal">
+    <span class="etiquette">Recommande</span>
+    <h3>EasyLanguage-installateur.exe</h3>
+    <p>Installe l'interpreteur, le debogueur et l'editeur dans votre profil utilisateur (aucun droit administrateur requis), cree les raccourcis Bureau et menu Demarrer, associe les fichiers <code>.elg</code> au logo et a l'editeur, et propose d'ajouter Easy Language au PATH pour l'utiliser depuis un terminal.</p>
+    <a class="bouton-principal" style="background:var(--violet); color:#fff;" href="https://github.com/abiyeenzo/easy-language/releases/latest/download/EasyLanguage-installateur.exe">Telecharger l'installateur</a>
+  </div>
+
+  <ul class="liste-secondaire">
+    <li>
+      <span class="desc"><code>EasyLanguage-windows.zip</code> : version portable, sans installation. Contient les trois executables, les exemples et la documentation.</span>
+      <a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/EasyLanguage-windows.zip">Telecharger</a>
+    </li>
+    <li>
+      <span class="desc"><code>easy_language.exe</code> : interpreteur seul, en ligne de commande.</span>
+      <a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_language.exe">Telecharger</a>
+    </li>
+    <li>
+      <span class="desc"><code>easy_debogueur.exe</code> : debogueur pas-a-pas, en ligne de commande.</span>
+      <a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_debogueur.exe">Telecharger</a>
+    </li>
+    <li>
+      <span class="desc"><code>easy_editeur.exe</code> : editeur graphique seul.</span>
+      <a href="https://github.com/abiyeenzo/easy-language/releases/latest/download/easy_editeur.exe">Telecharger</a>
+    </li>
+  </ul>
+</section>
+
+<section id="licence">
+  <h2>Licence et politique d'utilisation</h2>
+  <p class="soustitre">A lire avant d'utiliser ou de distribuer Easy Language.</p>
+
+  <div class="politique">
+    <h3>Droits d'auteur</h3>
+    <p>Easy Language, son code source, sa documentation, son logo et ses executables sont la propriete exclusive d'Abiye Enzo et de AE Corporation. Tous droits reserves.</p>
+
+    <h3>Utilisations autorisees</h3>
+    <ul>
+      <li>Consulter le code source publie sur ce depot.</li>
+      <li>Utiliser les executables distribues officiellement (page Releases) a titre personnel, pour ecrire et executer des programmes Easy Language.</li>
+    </ul>
+
+    <h3>Utilisations interdites sans accord ecrit</h3>
+    <ul>
+      <li>Redistribuer le code source ou les executables.</li>
+      <li>Modifier, sous-licencier ou creer des oeuvres derivees.</li>
+      <li>Tout usage commercial.</li>
+    </ul>
+
+    <h3>Garantie</h3>
+    <p>Le logiciel est fourni en l'etat, sans garantie d'aucune sorte. Abiye Enzo et AE Corporation ne pourront etre tenus responsables d'un dommage resultant de son utilisation.</p>
+
+    <h3>Confidentialite</h3>
+    <p>Easy Language ne collecte aucune donnee et ne se connecte a aucun serveur. L'interpreteur, le debogueur et l'editeur fonctionnent entierement hors ligne.</p>
+
+    <p class="copyright">Copyright (C) 2026 Abiye Enzo / AE Corporation. Texte complet : <a href="https://github.com/abiyeenzo/easy-language/blob/main/LICENSE">LICENSE</a> sur le depot GitHub.</p>
+  </div>
+</section>
+
+</main>
 
 <footer>
-  Easy Language. Projet realise pour un defi de programmation.
-  Code source : <a href="https://github.com/abiyeenzo/easy-language">github.com/abiyeenzo/easy-language</a>
+  <div>Copyright (C) 2026 Abiye Enzo / AE Corporation. Tous droits reserves.</div>
+  <div><a href="https://github.com/abiyeenzo/easy-language">github.com/abiyeenzo/easy-language</a></div>
 </footer>
 
 </body>
