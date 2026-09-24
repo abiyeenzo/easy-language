@@ -163,6 +163,25 @@
   .bouton-secondaire { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
   .bouton-secondaire:hover { background: rgba(255,255,255,0.2); text-decoration: none; transform: translateY(-2px); }
 
+  .bouton-copier-doc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--violet-300);
+    background: #fff;
+    color: var(--violet-700);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .bouton-copier-doc:hover { background: var(--violet-700); color: #fff; transform: translateY(-1px); }
+  .bouton-copier-doc svg { flex-shrink: 0; }
+  .bouton-copier-doc.copie { background: var(--corail-500); color: #2a1305; border-color: var(--corail-500); }
+
   @keyframes apparition {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -478,6 +497,10 @@
     <span class="oeillet">Documentation</span>
     <h2>Reference du langage</h2>
     <p class="soustitre">Toute la syntaxe d'Easy Language. Cliquez une section pour la deplier.</p>
+    <button class="bouton-copier-doc" id="bouton-copier-doc" onclick="copierDocumentationLLM()" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span id="texte-bouton-copier-doc">Copier la doc (pour un LLM)</span>
+    </button>
   </div>
 
   <details open>
@@ -565,7 +588,8 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
 
   <details>
   <summary>Limitations connues</summary>
-  <p>Pas de fermetures au-dela de la duree de vie d'un bloc : une fonction definie a l'interieur d'un <code>si</code> ou d'une boucle doit etre appelee dans ce meme bloc ; definissez vos fonctions au niveau superieur du fichier pour eviter tout probleme.</p>
+  <p>L'editeur graphique (Win32) n'a pas pu etre teste visuellement en environnement de developpement Linux ; sa compilation croisee reussit sans erreur, mais un test manuel sur une vraie machine Windows est recommande.</p>
+  <p>Deux anciennes limitations ont depuis ete corrigees : les fermetures (une fonction definie dans un bloc peut maintenant etre retournee et rester appelable, avec ses variables capturees, apres la fin de ce bloc) et l'ambiguite <code>3 -4</code> (desormais lu comme deux arguments plutot qu'une soustraction, un <code>-</code> precede d'une espace et colle a l'operande suivant marquant un nouvel element). Details dans le <a href="https://github.com/abiyeenzo/easy-language#limitations-connues">README</a>.</p>
   </details>
 </section>
 
@@ -616,7 +640,7 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
         <span class="version-numero">v1.0.6</span>
         <span class="version-date">24 septembre 2026</span>
       </div>
-      <p>Modules standard <code>texte</code> (manipulation de chaines) et <code>temps</code> (date et heure), desormais importables sans chemin (<code>importe math</code>). Editeur graphique : barre d'outils, barre d'etat, recherche de texte (Ctrl+F), verification automatique des mises a jour. Ligne de commande : <code>--aide modules</code> pour lister la bibliotheque standard. Cache de resolution sur l'arbre syntaxique (~5x plus rapide sur du code recursif intensif, ecart avec CPython reduit de ~8-10x a ~2.5x). 187 tests au total.</p>
+      <p>Modules standard <code>texte</code> et <code>temps</code>, desormais importables sans chemin (<code>importe math</code>). Module <code>gui</code> : en plus des boites de dialogue, de vraies fenetres Win32 avec boutons/champs/evenements. Fermetures (closures) qui survivent a leur bloc. Editeur graphique : plusieurs fichiers en onglets, numeros de ligne, arborescence laterale, fichiers recents, verification automatique des mises a jour. Ligne de commande : <code>--aide modules</code>. Cache de resolution sur l'arbre syntaxique (~5x plus rapide sur du code recursif intensif). 190 tests au total.</p>
     </div>
     <div class="version">
       <div class="version-entete">
@@ -714,6 +738,71 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
   <div>Copyright (C) 2026 Abiye Enzo / AE Corporation. Tous droits reserves.</div>
   <div><a href="https://github.com/abiyeenzo/easy-language">github.com/abiyeenzo/easy-language</a></div>
 </footer>
+
+<script>
+  /* Construit le Markdown de la doc a partir du DOM (aucun effet de bord :
+     pas de presse-papier ici), pour rester testable independamment et
+     rester en phase avec la doc affichee sans copie separee a maintenir. */
+  function construireMarkdownDocumentation() {
+    var section = document.getElementById('documentation');
+    var blocs = section.querySelectorAll('details');
+    var md = '# Easy Language : reference du langage\n\n';
+    md += 'Easy Language est un langage de programmation interprete avec des mots-cles ';
+    md += 'en francais (soit, si, sinon, tantque, pour, fonction, retourne, affiche, ';
+    md += 'demande, importe, comme, et, ou, non). Fichiers source en .elg. Blocs ';
+    md += 'delimites par indentation (espaces uniquement, pas de tabulation), sans ';
+    md += 'point-virgule ni accolade. Les virgules sont optionnelles dans les listes ';
+    md += "et les arguments d'appel (separation par espace).\n\n";
+    md += 'Depot : https://github.com/abiyeenzo/easy-language\n\n';
+
+    blocs.forEach(function (d) {
+      var titre = d.querySelector('summary');
+      var code = d.querySelector('pre code');
+      var paragraphes = d.querySelectorAll('p, table');
+      if (titre) md += '## ' + titre.textContent.trim() + '\n\n';
+      if (code) md += '```\n' + code.textContent + '\n```\n\n';
+      paragraphes.forEach(function (p) {
+        if (p.tagName === 'TABLE') {
+          p.querySelectorAll('tr').forEach(function (ligne) {
+            var cellules = Array.prototype.map.call(ligne.querySelectorAll('td, th'), function (c) {
+              return c.textContent.trim();
+            });
+            md += cellules.join(' : ') + '\n';
+          });
+          md += '\n';
+        } else {
+          md += p.textContent.trim() + '\n\n';
+        }
+      });
+    });
+
+    return md;
+  }
+
+  function copierDocumentationLLM() {
+    var md = construireMarkdownDocumentation();
+    var bouton = document.getElementById('bouton-copier-doc');
+    var texte = document.getElementById('texte-bouton-copier-doc');
+    var texteOriginal = texte.textContent;
+
+    function confirmerCopie() {
+      texte.textContent = 'Copie !';
+      bouton.classList.add('copie');
+      setTimeout(function () {
+        texte.textContent = texteOriginal;
+        bouton.classList.remove('copie');
+      }, 2000);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(md).then(confirmerCopie, function () {
+        window.prompt('Copie manuelle (Ctrl+C puis Entree) :', md);
+      });
+    } else {
+      window.prompt('Copie manuelle (Ctrl+C puis Entree) :', md);
+    }
+  }
+</script>
 
 </body>
 </html>

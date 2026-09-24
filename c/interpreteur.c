@@ -815,3 +815,10 @@ void interpreteur_executer(Noeud *programme, Environnement *globales) {
 void interpreteur_erreur(int ligne, const char *msg) {
     erreur_execution(ligne, msg);
 }
+
+Valeur interpreteur_appeler(Valeur fonction, Valeur *args, int nb_args, int ligne) {
+    if (fonction.type != V_FONCTION) {
+        erreur_execution(ligne, "callback attendu : la valeur fournie n'est pas une fonction");
+    }
+    return appeler_fonction(fonction.comme.fonction, args, nb_args, ligne);
+}

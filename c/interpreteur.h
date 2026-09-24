@@ -23,4 +23,12 @@ void interpreteur_executer(Noeud *programme, Environnement *globales);
    natifs (natifs_*.c) pour rester coherente avec les erreurs du coeur. */
 void interpreteur_erreur(int ligne, const char *msg);
 
+/* Appelle une Valeur de type V_FONCTION avec les arguments donnes, comme
+   le ferait un appel normal dans le script. Exposee pour les natifs qui
+   ont besoin de rappeler dans le script (callbacks) : voir natifs_gui.c,
+   ou une fonction Easy Language peut etre enregistree comme gestionnaire
+   du clic sur un bouton. Erreur d'execution si 'fonction' n'est pas une
+   V_FONCTION. */
+Valeur interpreteur_appeler(Valeur fonction, Valeur *args, int nb_args, int ligne);
+
 #endif

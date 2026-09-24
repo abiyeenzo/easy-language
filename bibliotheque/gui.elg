@@ -1,10 +1,56 @@
-# Bibliotheque d'interface graphique : boites de dialogue simples (pas un
-# framework de fenetres). Sous Windows (.exe), une vraie boite Win32
-# s'affiche (MessageBoxW). Ailleurs (developpement/tests), repli console
-# pour rester executable. importe "bibliotheque/gui.elg" comme gui.
+# Bibliotheque d'interface graphique. Deux niveaux :
+# - message/question : boites de dialogue simples. Sous Windows (.exe),
+#   une vraie boite Win32 s'affiche (MessageBoxW). Ailleurs
+#   (developpement/tests), repli console pour rester executable.
+# - creer/bouton/etiquette/champ_texte/... : de vraies fenetres Win32
+#   avec de vrais composants (bouton, etiquette, champ de saisie) et de
+#   vrais evenements (sur_clic rappelle une fonction Easy Language au
+#   clic). Disponible uniquement sous Windows (une fenetre graphique n'a
+#   pas de sens en ligne de commande) ; erreur claire ailleurs.
+#
+# importe gui
+#
+# soit f = gui.creer("Salutations" 320 160)
+# gui.etiquette(f "Ton nom :" 20 20 100 24)
+# soit champ = gui.champ_texte(f 130 20 150 24)
+# soit resultat = gui.etiquette(f "" 20 60 260 24)
+#
+# fonction sur_clic_bonjour():
+#     gui.definir_champ(resultat "Bonjour, " + gui.lire_champ(champ) + " !")
+#
+# soit bouton = gui.bouton(f "Valider" 130 90 100 30)
+# gui.sur_clic(bouton sur_clic_bonjour)
+# gui.executer()
 
 fonction message(titre texte):
     retourne boite_message(titre texte)
 
 fonction question(titre texte):
     retourne boite_question(titre texte)
+
+fonction creer(titre largeur hauteur):
+    retourne fenetre_creer(titre largeur hauteur)
+
+fonction bouton(fenetre texte x y largeur hauteur):
+    retourne fenetre_bouton(fenetre texte x y largeur hauteur)
+
+fonction etiquette(fenetre texte x y largeur hauteur):
+    retourne fenetre_etiquette(fenetre texte x y largeur hauteur)
+
+fonction champ_texte(fenetre x y largeur hauteur):
+    retourne fenetre_champ_texte(fenetre x y largeur hauteur)
+
+fonction lire_champ(champ):
+    retourne fenetre_lire_champ(champ)
+
+fonction definir_champ(champ texte):
+    retourne fenetre_definir_champ(champ texte)
+
+fonction sur_clic(bouton fonction_gestionnaire):
+    retourne fenetre_sur_clic(bouton fonction_gestionnaire)
+
+fonction executer():
+    retourne fenetre_executer()
+
+fonction fermer(fenetre):
+    retourne fenetre_fermer(fenetre)

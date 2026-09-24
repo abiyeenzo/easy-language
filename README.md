@@ -33,7 +33,7 @@ make tests
 Suite de tests maison (`c/tests/`, aucune dependance externe) : pilote le
 binaire `easylang`/`easy_debogueur` compile comme boite noire (le
 plus simple pour couvrir aussi les cas d'erreur, qui font `exit(1)`).
-187 verifications : variables, boucles, fonctions, fermetures, listes,
+190 verifications : variables, boucles, fonctions, fermetures, listes,
 erreurs, entree standard, debogueur, bibliotheque standard
 (math/os/reseau/gui/texte/temps, y compris un aller-retour TCP reel
 contre un serveur d'echo lance par le test lui-meme).
@@ -59,11 +59,26 @@ Commandes du debogueur : `n` (suivant), `c` (continuer), `ba <ligne>` /
 L'éditeur graphique (`c/easy_editeur.exe`) est écrit en Win32 C pur
 (RichEdit pour la coloration syntaxique, `CreateProcess`/pipes pour
 lancer `easylang.exe`/`easy_debogueur.exe`) : F5 = lancer, F6 =
-déboguer, Ctrl+F = rechercher. Une barre d'outils (Nouveau, Ouvrir,
-Enregistrer, Lancer, Déboguer, Rechercher) et une barre d'état (état de
-l'exécution en cours, ligne/colonne du curseur) complètent le menu. Menu
-Fichier > Fichiers récents (jusqu'à 8, persistés par utilisateur dans le
-registre Windows, HKCU) pour rouvrir rapidement un script. Il
+déboguer, Ctrl+F = rechercher, Ctrl+N = nouvel onglet, Ctrl+W = fermer
+l'onglet. Une seule barre en haut (le menu ; l'ancienne barre d'outils a
+été retirée, ses actions restent accessibles par le menu et les
+raccourcis) et une barre d'état en bas (état de l'exécution en cours,
+ligne/colonne du curseur) encadrent trois zones :
+
+- **Numéros de ligne** à gauche de l'éditeur (retour à la ligne
+  automatique désactivé pour qu'une ligne logique reste une ligne
+  visuelle, condition pour que les numéros restent alignés).
+- **Plusieurs fichiers ouverts en onglets** (jusqu'à 20) : Nouveau/Ouvrir
+  ajoutent un onglet plutôt que de remplacer le fichier en cours ; ouvrir
+  un fichier déjà ouvert bascule sur son onglet au lieu d'en dupliquer
+  un ; un `*` dans le titre de l'onglet signale des modifications non
+  enregistrées, avec confirmation à la fermeture (Ctrl+W).
+- **Arborescence** dans une barre latérale (dossier du fichier ouvert,
+  ou dossier courant au démarrage) : `[dossier]` pour naviguer,
+  `fichier.elg` pour l'ouvrir directement.
+
+Menu Fichier > Fichiers récents (jusqu'à 8, persistés par utilisateur
+dans le registre Windows, HKCU) pour rouvrir rapidement un script. Il
 vérifie automatiquement (via l'API GitHub Releases, en tâche de fond, au
 démarrage) si une nouvelle version est disponible, et propose d'ouvrir la
 page de téléchargement le cas échéant (menu Aide > Vérifier les mises à
@@ -247,11 +262,17 @@ avant (voir [Modules](#modules) plus haut) : `importe "chemin.elg"`.
   arrêtent le script).
 - **`reseau`** : client TCP basique (`connecter`, `envoyer`, `recevoir`,
   `fermer`). Pas de serveur, pas de HTTP/TLS : juste un socket brut.
-- **`gui`** : `message(titre texte)` et `question(titre texte)`, deux
-  boîtes de dialogue simples (pas un framework de fenêtres). Sous Windows
-  (`.exe`), une vraie boîte Win32 s'affiche (`MessageBoxW`) ; ailleurs
-  (développement, tests, CI Linux), repli console pour rester exécutable
-  et testable partout.
+- **`gui`** : deux niveaux. `message(titre texte)` / `question(titre
+  texte)` sont de simples boîtes de dialogue (vraie boîte Win32
+  `MessageBoxW` sous Windows, repli console ailleurs pour rester
+  exécutable et testable partout). `creer(titre largeur hauteur)`,
+  `bouton`, `etiquette`, `champ_texte`, `lire_champ`, `definir_champ`,
+  `sur_clic(bouton fonction)` et `executer()` créent de **vraies
+  fenêtres Win32** avec de vrais composants et de vrais événements (un
+  clic sur un bouton peut rappeler directement une fonction Easy
+  Language) ; disponible uniquement sous Windows (`.exe`), erreur claire
+  ailleurs. Exemple complet dans
+  [`bibliotheque/gui.elg`](bibliotheque/gui.elg).
 - **`texte`** : `decouper` (split), `joindre` (join), `remplacer`,
   `majuscules`, `minuscules`, `rogner` (trim), `commence_par`,
   `finit_par`, `sous_texte` (substring, indices bornés sans erreur),

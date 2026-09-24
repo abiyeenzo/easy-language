@@ -51,6 +51,7 @@
 #define ID_MENU_VERIFIER_MAJ 210
 #define ID_MENU_RECENT_EFFACER 298
 #define ID_MENU_RECENT_BASE 300
+#define ID_MENU_FERMER_ONGLET 211
 #define MAX_FICHIERS_RECENTS 8
 
 #define WM_APP_SORTIE_TEXTE (WM_APP + 1)
@@ -60,7 +61,10 @@
 #define WM_APP_MAJ_ERREUR (WM_APP + 5)
 
 static HWND g_fenetre, g_editeur, g_sortie, g_entree_commande, g_label_entree;
-static HWND g_barre_outils, g_barre_etat;
+static HWND g_barre_etat;
+static HWND g_gutter;
+static WNDPROC g_proc_originale_editeur;
+#define LARGEUR_GUTTER 46
 static HWND g_dlg_recherche = NULL;
 static UINT g_msg_trouver_prochain = 0;
 static FINDREPLACEW g_fr;
@@ -73,6 +77,39 @@ static HANDLE g_pipe_entree_ecriture = NULL;
 static HANDLE g_processus_courant = NULL;
 static volatile BOOL g_processus_actif = FALSE;
 static BOOL g_en_coloration = FALSE;
+
+/* ------------------------------------------------------------------ */
+/* documents ouverts (onglets)                                        */
+
+#define MAX_DOCUMENTS 20
+#define LARGEUR_SIDEBAR 220
+
+typedef struct {
+    wchar_t chemin[MAX_PATH]; /* vide si "sans titre" (jamais enregistre) */
+    wchar_t *contenu;         /* texte hors ecran ; NULL/vide pour l'onglet actif, dont le texte vit dans g_editeur */
+    BOOL modifie;
+} Document;
+
+static HWND g_onglets;
+static Document g_documents[MAX_DOCUMENTS];
+static int g_nb_documents = 0;
+static int g_document_actif = -1;
+static BOOL g_chargement_document = FALSE;
+
+/* ------------------------------------------------------------------ */
+/* arborescence (barre laterale)                                      */
+
+#define MAX_ARBO_ENTREES 512
+
+static HWND g_arborescence;
+static wchar_t g_arbo_dossier_base[MAX_PATH] = L"";
+static wchar_t g_arbo_noms[MAX_ARBO_ENTREES][MAX_PATH];
+static BOOL g_arbo_est_dossier[MAX_ARBO_ENTREES];
+static int g_arbo_compte = 0;
+
+static void mettre_a_jour_titre(HWND hwnd);
+static BOOL charger_fichier(const wchar_t *chemin);
+static void definir_statut(const wchar_t *texte);
 
 /* ------------------------------------------------------------------ */
 /* coloration syntaxique                                              */
@@ -170,6 +207,241 @@ static void colorer_syntaxe(HWND edit) {
 
     free(texte);
     g_en_coloration = FALSE;
+}
+
+/* ------------------------------------------------------------------ */
+/* numeros de ligne (gouttiere)                                       */
+
+static LRESULT CALLBACK proc_gouttiere(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    if (msg == WM_ERASEBKGND) return 1;
+
+    if (msg == WM_PAINT) {
+        PAINTSTRUCT ps;
+        HDC dc = BeginPaint(hwnd, &ps);
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        HBRUSH fond = CreateSolidBrush(RGB(238, 236, 242));
+        FillRect(dc, &rc, fond);
+        DeleteObject(fond);
+
+        HFONT police = (HFONT)SendMessageW(g_editeur, WM_GETFONT, 0, 0);
+        HFONT ancienne_police = (HFONT)SelectObject(dc, police);
+        TEXTMETRICW tm;
+        GetTextMetricsW(dc, &tm);
+        int hauteur_ligne = tm.tmHeight + tm.tmExternalLeading;
+
+        int premiere_ligne = (int)SendMessageW(g_editeur, EM_GETFIRSTVISIBLELINE, 0, 0);
+        int nb_lignes = (int)SendMessageW(g_editeur, EM_GETLINECOUNT, 0, 0);
+
+        SetBkMode(dc, TRANSPARENT);
+        SetTextColor(dc, RGB(142, 138, 156));
+
+        int y = 0;
+        for (int ligne = premiere_ligne; ligne < nb_lignes && y < rc.bottom; ligne++) {
+            wchar_t texte[16];
+            _snwprintf(texte, 16, L"%d", ligne + 1);
+            RECT zone = { 0, y, rc.right - 8, y + hauteur_ligne };
+            DrawTextW(dc, texte, -1, &zone, DT_RIGHT | DT_SINGLELINE | DT_NOCLIP);
+            y += hauteur_ligne;
+        }
+
+        SelectObject(dc, ancienne_police);
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+
+    return DefWindowProcW(hwnd, msg, wp, lp);
+}
+
+static void invalider_gouttiere(void) {
+    if (g_gutter) InvalidateRect(g_gutter, NULL, TRUE);
+}
+
+/* Sous-classe l'editeur pour repeindre la gouttiere apres tout ce qui
+   peut faire defiler ou re-paginer le texte (RichEdit n'envoie pas de
+   notification dediee pour le simple defilement). */
+static LRESULT CALLBACK proc_editeur(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    LRESULT resultat = CallWindowProcW(g_proc_originale_editeur, hwnd, msg, wp, lp);
+    switch (msg) {
+        case WM_VSCROLL:
+        case WM_MOUSEWHEEL:
+        case WM_KEYDOWN:
+        case WM_SIZE:
+            invalider_gouttiere();
+            break;
+    }
+    return resultat;
+}
+
+/* ------------------------------------------------------------------ */
+/* documents ouverts (onglets)                                        */
+
+static void mettre_a_jour_etiquette_onglet(int index) {
+    const wchar_t *chemin = g_documents[index].chemin;
+    const wchar_t *nom = chemin[0] ? wcsrchr(chemin, L'\\') : NULL;
+    nom = nom ? nom + 1 : (chemin[0] ? chemin : L"Sans titre");
+    wchar_t etiquette[MAX_PATH + 4];
+    _snwprintf(etiquette, MAX_PATH + 4, L"%s%s", nom, g_documents[index].modifie ? L" *" : L"");
+
+    TCITEMW item;
+    memset(&item, 0, sizeof(item));
+    item.mask = TCIF_TEXT;
+    item.pszText = etiquette;
+    SendMessageW(g_onglets, TCM_SETITEMW, (WPARAM)index, (LPARAM)&item);
+}
+
+/* Sauvegarde le texte actuellement affiche dans g_editeur vers le
+   document actif (hors ecran), avant de basculer vers un autre onglet :
+   un seul RichEdit est partage entre tous les onglets plutot que d'en
+   garder N en memoire, le contenu "non actif" vit dans Document.contenu. */
+static void capturer_document_actif(void) {
+    if (g_document_actif < 0) return;
+    int longueur = GetWindowTextLengthW(g_editeur);
+    wchar_t *texte = malloc(sizeof(wchar_t) * (longueur + 1));
+    GetWindowTextW(g_editeur, texte, longueur + 1);
+    free(g_documents[g_document_actif].contenu);
+    g_documents[g_document_actif].contenu = texte;
+}
+
+static void afficher_document(int index) {
+    if (index < 0 || index >= g_nb_documents) return;
+    g_document_actif = index;
+
+    g_chargement_document = TRUE;
+    SetWindowTextW(g_editeur, g_documents[index].contenu ? g_documents[index].contenu : L"");
+    g_chargement_document = FALSE;
+
+    wcsncpy(g_chemin_fichier, g_documents[index].chemin, MAX_PATH - 1);
+    g_chemin_fichier[MAX_PATH - 1] = L'\0';
+
+    colorer_syntaxe(g_editeur);
+    invalider_gouttiere();
+    mettre_a_jour_titre(g_fenetre);
+    SendMessageW(g_onglets, TCM_SETCURSEL, (WPARAM)index, 0);
+}
+
+static void nouveau_document(void) {
+    if (g_nb_documents >= MAX_DOCUMENTS) {
+        MessageBoxW(g_fenetre, L"Nombre maximal de fichiers ouverts atteint.", L"Easy Language", MB_ICONWARNING);
+        return;
+    }
+    capturer_document_actif();
+
+    int index = g_nb_documents++;
+    g_documents[index].chemin[0] = L'\0';
+    g_documents[index].contenu = _wcsdup(L"");
+    g_documents[index].modifie = FALSE;
+
+    TCITEMW item;
+    memset(&item, 0, sizeof(item));
+    item.mask = TCIF_TEXT;
+    item.pszText = L"Sans titre";
+    SendMessageW(g_onglets, TCM_INSERTITEMW, (WPARAM)index, (LPARAM)&item);
+
+    afficher_document(index);
+    definir_statut(L"Pret");
+}
+
+/* Ferme l'onglet actif (Ctrl+W). Garde toujours au moins un onglet
+   ouvert : fermer le dernier le remplace par un nouvel onglet vide
+   plutot que de laisser l'editeur sans onglet du tout. */
+static void fermer_onglet_actif(void) {
+    if (g_document_actif < 0) return;
+
+    if (g_documents[g_document_actif].modifie) {
+        int reponse = MessageBoxW(g_fenetre,
+            L"Ce fichier contient des modifications non enregistrees. Fermer quand meme ?",
+            L"Fermer l'onglet", MB_YESNO | MB_ICONWARNING);
+        if (reponse != IDYES) return;
+    }
+
+    free(g_documents[g_document_actif].contenu);
+    int ferme = g_document_actif;
+    for (int i = ferme; i < g_nb_documents - 1; i++) {
+        g_documents[i] = g_documents[i + 1];
+    }
+    g_nb_documents--;
+    g_document_actif = -1;
+    SendMessageW(g_onglets, TCM_DELETEITEM, (WPARAM)ferme, 0);
+
+    if (g_nb_documents == 0) {
+        nouveau_document();
+    } else {
+        int nouvel_index = ferme < g_nb_documents ? ferme : g_nb_documents - 1;
+        afficher_document(nouvel_index);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* arborescence (barre laterale)                                      */
+
+static void obtenir_dossier_parent(const wchar_t *dossier, wchar_t *dehors, size_t taille) {
+    wcsncpy(dehors, dossier, taille - 1);
+    dehors[taille - 1] = L'\0';
+    wchar_t *sep = wcsrchr(dehors, L'\\');
+    if (sep && sep != dehors) *sep = L'\0';
+}
+
+static void peupler_arborescence(const wchar_t *dossier) {
+    TreeView_DeleteAllItems(g_arborescence);
+    g_arbo_compte = 0;
+    if (!dossier || !dossier[0]) return;
+    wcsncpy(g_arbo_dossier_base, dossier, MAX_PATH - 1);
+    g_arbo_dossier_base[MAX_PATH - 1] = L'\0';
+
+    TVINSERTSTRUCTW is;
+    memset(&is, 0, sizeof(is));
+    is.hParent = TVI_ROOT;
+    is.hInsertAfter = TVI_LAST;
+    is.item.mask = TVIF_TEXT | TVIF_PARAM;
+    is.item.pszText = L"..";
+    is.item.lParam = -1;
+    TreeView_InsertItem(g_arborescence, &is);
+
+    wchar_t motif[MAX_PATH];
+    _snwprintf(motif, MAX_PATH, L"%s\\*", dossier);
+    WIN32_FIND_DATAW donnee;
+    HANDLE h = FindFirstFileW(motif, &donnee);
+    if (h == INVALID_HANDLE_VALUE) return;
+
+    do {
+        if (wcscmp(donnee.cFileName, L".") == 0 || wcscmp(donnee.cFileName, L"..") == 0) continue;
+        BOOL est_dossier = (donnee.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        size_t longueur = wcslen(donnee.cFileName);
+        BOOL fichier_elg = !est_dossier && longueur > 4 && _wcsicmp(donnee.cFileName + longueur - 4, L".elg") == 0;
+        if (!est_dossier && !fichier_elg) continue;
+        if (g_arbo_compte >= MAX_ARBO_ENTREES) break;
+
+        int idx = g_arbo_compte++;
+        wcsncpy(g_arbo_noms[idx], donnee.cFileName, MAX_PATH - 1);
+        g_arbo_noms[idx][MAX_PATH - 1] = L'\0';
+        g_arbo_est_dossier[idx] = est_dossier;
+
+        wchar_t etiquette[MAX_PATH + 4];
+        _snwprintf(etiquette, MAX_PATH + 4, est_dossier ? L"[%s]" : L"%s", donnee.cFileName);
+        is.item.pszText = etiquette;
+        is.item.lParam = (LPARAM)idx;
+        TreeView_InsertItem(g_arborescence, &is);
+    } while (FindNextFileW(h, &donnee));
+    FindClose(h);
+}
+
+static void gerer_clic_arborescence(int idx) {
+    if (idx == -1) {
+        wchar_t parent[MAX_PATH];
+        obtenir_dossier_parent(g_arbo_dossier_base, parent, MAX_PATH);
+        peupler_arborescence(parent);
+        return;
+    }
+    if (idx < 0 || idx >= g_arbo_compte) return;
+
+    wchar_t chemin[MAX_PATH];
+    _snwprintf(chemin, MAX_PATH, L"%s\\%s", g_arbo_dossier_base, g_arbo_noms[idx]);
+    if (g_arbo_est_dossier[idx]) {
+        peupler_arborescence(chemin);
+    } else if (!charger_fichier(chemin)) {
+        MessageBoxW(g_fenetre, L"Impossible d'ouvrir ce fichier.", L"Erreur", MB_ICONERROR);
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -584,7 +856,24 @@ static void effacer_fichiers_recents(void) {
 
 /* Charge le contenu d'un fichier .elg dans l'editeur. Partagee par
    "Ouvrir..." (boite de dialogue standard) et le menu "Fichiers recents". */
+static void obtenir_dossier_w(const wchar_t *chemin, wchar_t *dehors, size_t taille) {
+    wcsncpy(dehors, chemin, taille - 1);
+    dehors[taille - 1] = L'\0';
+    wchar_t *sep = wcsrchr(dehors, L'\\');
+    if (sep) *sep = L'\0';
+}
+
 static BOOL charger_fichier(const wchar_t *chemin) {
+    /* deja ouvert dans un onglet ? on y bascule plutot que d'ouvrir un doublon */
+    for (int i = 0; i < g_nb_documents; i++) {
+        if (_wcsicmp(g_documents[i].chemin, chemin) == 0) {
+            capturer_document_actif();
+            afficher_document(i);
+            ajouter_fichier_recent(chemin);
+            return TRUE;
+        }
+    }
+
     HANDLE f = CreateFileW(chemin, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (f == INVALID_HANDLE_VALUE) return FALSE;
     DWORD taille = GetFileSize(f, NULL);
@@ -597,14 +886,46 @@ static BOOL charger_fichier(const wchar_t *chemin) {
     int longueur_large = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
     wchar_t *large = malloc(sizeof(wchar_t) * longueur_large);
     MultiByteToWideChar(CP_UTF8, 0, utf8, -1, large, longueur_large);
-    SetWindowTextW(g_editeur, large);
     free(utf8);
-    free(large);
 
-    wcsncpy(g_chemin_fichier, chemin, MAX_PATH - 1);
-    g_chemin_fichier[MAX_PATH - 1] = L'\0';
-    colorer_syntaxe(g_editeur);
+    if (g_nb_documents >= MAX_DOCUMENTS) {
+        MessageBoxW(g_fenetre, L"Nombre maximal de fichiers ouverts atteint.", L"Easy Language", MB_ICONWARNING);
+        free(large);
+        return FALSE;
+    }
+
+    capturer_document_actif();
+
+    /* reutilise l'onglet actif s'il s'agit d'un "Sans titre" vide et non
+       modifie, plutot que de laisser un onglet inutile trainer */
+    int index;
+    BOOL onglet_actif_vide = g_document_actif >= 0 && g_documents[g_document_actif].chemin[0] == L'\0' &&
+        !g_documents[g_document_actif].modifie &&
+        (!g_documents[g_document_actif].contenu || g_documents[g_document_actif].contenu[0] == L'\0');
+    if (onglet_actif_vide) {
+        index = g_document_actif;
+    } else {
+        index = g_nb_documents++;
+        TCITEMW item;
+        memset(&item, 0, sizeof(item));
+        item.mask = TCIF_TEXT;
+        item.pszText = L"";
+        SendMessageW(g_onglets, TCM_INSERTITEMW, (WPARAM)index, (LPARAM)&item);
+    }
+
+    wcsncpy(g_documents[index].chemin, chemin, MAX_PATH - 1);
+    g_documents[index].chemin[MAX_PATH - 1] = L'\0';
+    free(g_documents[index].contenu);
+    g_documents[index].contenu = large;
+    g_documents[index].modifie = FALSE;
+
+    afficher_document(index);
+    mettre_a_jour_etiquette_onglet(index);
     ajouter_fichier_recent(chemin);
+
+    wchar_t dossier[MAX_PATH];
+    obtenir_dossier_w(chemin, dossier, MAX_PATH);
+    peupler_arborescence(dossier);
     return TRUE;
 }
 
@@ -620,13 +941,21 @@ static BOOL enregistrer_fichier(void) {
     WideCharToMultiByte(CP_UTF8, 0, texte, -1, utf8, taille_utf8, NULL, NULL);
 
     HANDLE f = CreateFileW(g_chemin_fichier, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (f != INVALID_HANDLE_VALUE) {
+    BOOL ok = f != INVALID_HANDLE_VALUE;
+    if (ok) {
         DWORD ecrit;
         WriteFile(f, utf8, (DWORD)strlen(utf8), &ecrit, NULL);
         CloseHandle(f);
     }
     free(texte);
     free(utf8);
+
+    if (ok && g_document_actif >= 0) {
+        wcsncpy(g_documents[g_document_actif].chemin, g_chemin_fichier, MAX_PATH - 1);
+        g_documents[g_document_actif].chemin[MAX_PATH - 1] = L'\0';
+        g_documents[g_document_actif].modifie = FALSE;
+        mettre_a_jour_etiquette_onglet(g_document_actif);
+    }
     return TRUE;
 }
 
@@ -679,6 +1008,7 @@ static void creer_menu(HWND hwnd) {
     AppendMenuW(menu_fichier, MF_POPUP, (UINT_PTR)g_menu_recents, L"Fichiers recents");
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_ENREGISTRER, L"Enregistrer\tCtrl+S");
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_ENREGISTRER_SOUS, L"Enregistrer sous...");
+    AppendMenuW(menu_fichier, MF_STRING, ID_MENU_FERMER_ONGLET, L"Fermer l'onglet\tCtrl+W");
     AppendMenuW(menu_fichier, MF_SEPARATOR, 0, NULL);
     AppendMenuW(menu_fichier, MF_STRING, ID_MENU_QUITTER, L"Quitter");
     AppendMenuW(barre, MF_POPUP, (UINT_PTR)menu_fichier, L"Fichier");
@@ -700,27 +1030,6 @@ static void creer_menu(HWND hwnd) {
     SetMenu(hwnd, barre);
 }
 
-static void creer_barre_outils(HWND hwnd) {
-    HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
-    g_barre_outils = CreateWindowExW(0, TOOLBARCLASSNAMEW, NULL,
-        WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | CCS_NODIVIDER,
-        0, 0, 0, 0, hwnd, NULL, instance, NULL);
-    SendMessageW(g_barre_outils, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-
-    TBBUTTON boutons[] = {
-        { I_IMAGENONE, ID_MENU_NOUVEAU, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Nouveau" },
-        { I_IMAGENONE, ID_MENU_OUVRIR, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Ouvrir" },
-        { I_IMAGENONE, ID_MENU_ENREGISTRER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Enregistrer" },
-        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_SEP, {0}, 0, 0 },
-        { I_IMAGENONE, ID_MENU_LANCER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Lancer" },
-        { I_IMAGENONE, ID_MENU_DEBOGUER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Deboguer" },
-        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_SEP, {0}, 0, 0 },
-        { I_IMAGENONE, ID_MENU_RECHERCHER, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, {0}, 0, (INT_PTR)L"Rechercher" },
-    };
-    SendMessageW(g_barre_outils, TB_ADDBUTTONSW, sizeof(boutons) / sizeof(boutons[0]), (LPARAM)boutons);
-    SendMessageW(g_barre_outils, TB_AUTOSIZE, 0, 0);
-}
-
 static void creer_barre_etat(HWND hwnd) {
     HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE);
     g_barre_etat = CreateWindowExW(0, STATUSCLASSNAMEW, NULL,
@@ -738,14 +1047,33 @@ static void creer_controles(HWND hwnd) {
                                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
                                 FIXED_PITCH, L"Consolas");
 
-    creer_barre_outils(hwnd);
     creer_barre_etat(hwnd);
 
+    g_onglets = CreateWindowExW(0, WC_TABCONTROLW, L"",
+        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, instance, NULL);
+    SendMessageW(g_onglets, WM_SETFONT, (WPARAM)police, TRUE);
+
+    g_arborescence = CreateWindowExW(WS_EX_CLIENTEDGE, WC_TREEVIEWW, L"",
+        WS_CHILD | WS_VISIBLE | TVS_HASLINES | TVS_SHOWSELALWAYS,
+        0, 0, 0, 0, hwnd, NULL, instance, NULL);
+    SendMessageW(g_arborescence, WM_SETFONT, (WPARAM)police, TRUE);
+
+    g_gutter = CreateWindowExW(0, L"EasyLanguageGouttiere", L"",
+        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, instance, NULL);
+
+    /* WS_HSCROLL | ES_AUTOHSCROLL desactive le retour a la ligne
+       automatique : une ligne logique = une ligne visuelle a l'ecran,
+       necessaire pour que les numeros de la gouttiere restent alignes
+       avec le texte (retour a la ligne + gouttiere ne feraient plus
+       correspondre les deux sans un calcul de pagination bien plus
+       complexe). Une barre de defilement horizontale apparait quand une
+       ligne depasse la largeur visible. */
     g_editeur = CreateWindowExW(WS_EX_CLIENTEDGE, MSFTEDIT_CLASS, L"",
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN,
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN,
         0, 0, 0, 0, hwnd, (HMENU)ID_EDITEUR, instance, NULL);
     SendMessageW(g_editeur, EM_SETEVENTMASK, 0, ENM_CHANGE | ENM_SELCHANGE);
     SendMessageW(g_editeur, WM_SETFONT, (WPARAM)police, TRUE);
+    g_proc_originale_editeur = (WNDPROC)SetWindowLongPtrW(g_editeur, GWLP_WNDPROC, (LONG_PTR)proc_editeur);
 
     CreateWindowExW(0, L"STATIC", L"Sortie:", WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, hwnd, NULL, instance, NULL);
@@ -768,34 +1096,38 @@ static void creer_controles(HWND hwnd) {
 static void redimensionner_controles(HWND hwnd) {
     RECT rc;
     GetClientRect(hwnd, &rc);
-    int largeur = rc.right - rc.left;
+    int largeur_totale = rc.right - rc.left;
     int hauteur = rc.bottom - rc.top;
-
-    SendMessageW(g_barre_outils, TB_AUTOSIZE, 0, 0);
-    RECT rc_outils;
-    GetWindowRect(g_barre_outils, &rc_outils);
-    int h_outils = rc_outils.bottom - rc_outils.top;
-    MoveWindow(g_barre_outils, 0, 0, largeur, h_outils, TRUE);
 
     SendMessageW(g_barre_etat, WM_SIZE, 0, 0);
     RECT rc_etat;
     GetWindowRect(g_barre_etat, &rc_etat);
     int h_etat = rc_etat.bottom - rc_etat.top;
 
-    int y = h_outils;
-    int zone_utile = hauteur - h_outils - h_etat;
+    int h_onglets = 28;
+    MoveWindow(g_onglets, 0, 0, largeur_totale, h_onglets, TRUE);
+
+    int y = h_onglets;
+    int zone_utile = hauteur - h_onglets - h_etat;
+
+    MoveWindow(g_arborescence, 0, y, LARGEUR_SIDEBAR, zone_utile, TRUE);
+
+    int x = LARGEUR_SIDEBAR;
+    int largeur = largeur_totale - LARGEUR_SIDEBAR;
+
     int h_editeur = (int)(zone_utile * 0.6);
-    MoveWindow(g_editeur, 0, y, largeur, h_editeur, TRUE);
+    MoveWindow(g_gutter, x, y, LARGEUR_GUTTER, h_editeur, TRUE);
+    MoveWindow(g_editeur, x + LARGEUR_GUTTER, y, largeur - LARGEUR_GUTTER, h_editeur, TRUE);
     y += h_editeur;
 
     int h_sortie = zone_utile - h_editeur - 44;
     if (h_sortie < 50) h_sortie = 50;
-    MoveWindow(g_sortie, 0, y, largeur, h_sortie, TRUE);
+    MoveWindow(g_sortie, x, y, largeur, h_sortie, TRUE);
     y += h_sortie;
 
-    MoveWindow(g_label_entree, 0, y, largeur, 18, TRUE);
+    MoveWindow(g_label_entree, x, y, largeur, 18, TRUE);
     y += 18;
-    MoveWindow(g_entree_commande, 0, y, largeur, 24, TRUE);
+    MoveWindow(g_entree_commande, x, y, largeur, 24, TRUE);
 }
 
 static void mettre_a_jour_titre(HWND hwnd) {
@@ -815,6 +1147,11 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
     if ((HWND)lp == g_editeur && notification == EN_CHANGE) {
         colorer_syntaxe(g_editeur);
         mettre_a_jour_position_curseur();
+        invalider_gouttiere();
+        if (!g_chargement_document && g_document_actif >= 0 && !g_documents[g_document_actif].modifie) {
+            g_documents[g_document_actif].modifie = TRUE;
+            mettre_a_jour_etiquette_onglet(g_document_actif);
+        }
         return;
     }
     if ((HWND)lp == g_editeur && notification == EN_SELCHANGE) {
@@ -843,10 +1180,10 @@ static void gerer_commande(HWND hwnd, WPARAM wp, LPARAM lp) {
 
     switch (id) {
         case ID_MENU_NOUVEAU:
-            SetWindowTextW(g_editeur, L"");
-            g_chemin_fichier[0] = L'\0';
-            mettre_a_jour_titre(hwnd);
-            definir_statut(L"Pret");
+            nouveau_document();
+            break;
+        case ID_MENU_FERMER_ONGLET:
+            fermer_onglet_actif();
             break;
         case ID_MENU_OUVRIR:
             ouvrir_fichier();
@@ -923,15 +1260,25 @@ static LRESULT CALLBACK proc_entree_commande(HWND hwnd, UINT msg, WPARAM wp, LPA
 
 LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
-        case WM_CREATE:
+        case WM_CREATE: {
+            /* g_fenetre n'est normalement assigne qu'au retour de
+               CreateWindowExW, mais WM_CREATE est distribue de maniere
+               synchrone pendant cet appel : les fonctions appelees d'ici
+               (nouveau_document -> afficher_document -> mettre_a_jour_titre)
+               utilisent g_fenetre, il faut donc l'avoir deja assigne. */
+            g_fenetre = hwnd;
             creer_menu(hwnd);
             creer_controles(hwnd);
             g_proc_originale_commande = (WNDPROC)SetWindowLongPtrW(g_entree_commande, GWLP_WNDPROC, (LONG_PTR)proc_entree_commande);
+            nouveau_document();
             mettre_a_jour_titre(hwnd);
             charger_fichiers_recents();
             reconstruire_menu_recents();
+            wchar_t dossier_courant[MAX_PATH];
+            if (GetCurrentDirectoryW(MAX_PATH, dossier_courant)) peupler_arborescence(dossier_courant);
             lancer_verification_maj(TRUE);
             return 0;
+        }
 
         case WM_SIZE:
             redimensionner_controles(hwnd);
@@ -940,6 +1287,19 @@ LRESULT CALLBACK FenetrePrincipaleProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         case WM_COMMAND:
             gerer_commande(hwnd, wp, lp);
             return 0;
+
+        case WM_NOTIFY: {
+            NMHDR *nm = (NMHDR *)lp;
+            if (nm->hwndFrom == g_onglets && nm->code == TCN_SELCHANGE) {
+                capturer_document_actif();
+                int nouvel_index = (int)SendMessageW(g_onglets, TCM_GETCURSEL, 0, 0);
+                afficher_document(nouvel_index);
+            } else if (nm->hwndFrom == g_arborescence && nm->code == TVN_SELCHANGEDW) {
+                NMTREEVIEWW *nmtv = (NMTREEVIEWW *)lp;
+                gerer_clic_arborescence((int)nmtv->itemNew.lParam);
+            }
+            return 0;
+        }
 
         case WM_APP_SORTIE_TEXTE: {
             wchar_t *texte = (wchar_t *)lp;
@@ -1001,7 +1361,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
 
     INITCOMMONCONTROLSEX icc;
     icc.dwSize = sizeof(icc);
-    icc.dwICC = ICC_BAR_CLASSES;
+    icc.dwICC = ICC_BAR_CLASSES | ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES;
     InitCommonControlsEx(&icc);
 
     g_msg_trouver_prochain = RegisterWindowMessageW(FINDMSGSTRINGW);
@@ -1017,6 +1377,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.hIcon = icone;
     RegisterClassW(&wc);
+
+    WNDCLASSW wc_gouttiere;
+    memset(&wc_gouttiere, 0, sizeof(wc_gouttiere));
+    wc_gouttiere.lpfnWndProc = proc_gouttiere;
+    wc_gouttiere.hInstance = instance;
+    wc_gouttiere.lpszClassName = L"EasyLanguageGouttiere";
+    wc_gouttiere.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    RegisterClassW(&wc_gouttiere);
 
     g_fenetre = CreateWindowExW(0, L"EasyLanguageEditeur", L"Easy Language",
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 950, 700,
@@ -1037,7 +1405,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE instance_precedente, PWSTR lig
         { FVIRTKEY | FCONTROL, 'O', ID_MENU_OUVRIR },
         { FVIRTKEY | FCONTROL, 'S', ID_MENU_ENREGISTRER },
         { FVIRTKEY | FCONTROL, 'F', ID_MENU_RECHERCHER },
-    }, 6);
+        { FVIRTKEY | FCONTROL, 'W', ID_MENU_FERMER_ONGLET },
+    }, 7);
 
     MSG msg;
     while (GetMessageW(&msg, NULL, 0, 0)) {

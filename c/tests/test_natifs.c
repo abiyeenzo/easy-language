@@ -165,6 +165,23 @@ static void test_gui_boite_question(void) {
     executer_script_liberer(r);
 }
 
+/* fenetre_* (vraies fenetres/composants Win32) : uniquement disponibles
+   sous Windows, une fenetre graphique n'ayant pas de sens en ligne de
+   commande. Sur cette plateforme (Linux, dev/tests), verifie juste que
+   l'erreur est claire plutot que silencieuse ou un plantage ; le chemin
+   Windows reel (creation de fenetre, clic, callback) ne peut pas etre
+   verifie automatiquement dans cet environnement. */
+static void test_gui_fenetre_indisponible_hors_windows(void) {
+    ResultatExecution r = X("soit f = fenetre_creer(\"Test\" 300 200)\n");
+    VERIFIER(r.code_sortie != 0);
+    VERIFIER_CONTIENT(r.sortie, "Windows");
+    executer_script_liberer(r);
+
+    r = X("fenetre_executer()\n");
+    VERIFIER(r.code_sortie != 0);
+    executer_script_liberer(r);
+}
+
 /* --- reseau --- */
 
 static pid_t lancer_serveur_echo(int port) {
@@ -284,6 +301,7 @@ void executer_tests_natifs(void) {
 
     test_gui_boite_message();
     test_gui_boite_question();
+    test_gui_fenetre_indisponible_hors_windows();
 
     test_reseau_aller_retour_complet();
     test_reseau_connexion_refusee();

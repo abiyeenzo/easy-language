@@ -16,6 +16,36 @@ Toutes les versions notables du projet sont documentees ici.
   nouvelle).
 
 ### Ajoute
+- **Module `gui` : de vraies fenetres Win32.** En plus des boites de
+  dialogue existantes (`message`/`question`), le module expose
+  desormais `creer`, `bouton`, `etiquette`, `champ_texte`, `lire_champ`,
+  `definir_champ`, `sur_clic` et `executer` pour construire de vraies
+  fenetres Win32 avec de vrais composants et de vrais evenements : un
+  clic sur un bouton peut rappeler directement une fonction Easy
+  Language (`interpreteur_appeler`, nouvelle API publique de
+  l'interpreteur pour les rappels depuis les natifs). Disponible
+  uniquement sous Windows (`.exe`) ; erreur claire ailleurs. Exemple
+  complet dans `bibliotheque/gui.elg`.
+- **Editeur graphique, refonte de l'interface :**
+  - Barre d'outils retiree (elle faisait une deuxieme ligne redondante
+    avec le menu, qui couvre deja toutes ses actions) : une seule barre
+    en haut desormais.
+  - Numeros de ligne dans une gouttiere a gauche de l'editeur (retour a
+    la ligne automatique desactive pour garder une ligne logique = une
+    ligne visuelle, necessaire pour que les numeros restent alignes).
+  - Plusieurs fichiers ouverts a la fois, en onglets (jusqu'a 20) :
+    Nouveau/Ouvrir ajoutent un onglet, un fichier deja ouvert bascule
+    sur son onglet au lieu d'un doublon, `*` signale les modifications
+    non enregistrees, confirmation a la fermeture (Ctrl+W) si besoin.
+  - Barre laterale avec une arborescence basique (dossier du fichier
+    ouvert, navigation par dossier, clic sur un `.elg` pour l'ouvrir).
+- Installateur : page dediee (auteur, societe, depot) affichee avant
+  l'installation (`InfoBeforeFile`).
+- Site : bouton "Copier la doc (pour un LLM)" sur la section
+  Documentation, qui construit un Markdown propre a partir de la doc
+  affichee (sans copie separee a maintenir) et le met dans le
+  presse-papier.
+- 3 nouveaux tests (190 au total).
 - **Fermetures (closures).** Une fonction definie a l'interieur d'un bloc
   (`si`/boucle/appel de fonction) peut desormais etre retournee ou
   stockee ailleurs et rester appelable apres la fin de ce bloc, en
@@ -107,6 +137,11 @@ Toutes les versions notables du projet sont documentees ici.
   apres cache de resolution) face a CPython 3.13.
 
 ### Corrige
+- La section "Limitations connues" du site (accordéon de documentation)
+  mentionnait encore l'absence de fermetures, deja corrigee plus haut
+  dans cette meme version : trouve en testant le nouveau bouton "Copier
+  la doc" (qui extrait le texte reellement affiche), mis a jour pour
+  refleter l'etat actuel.
 - **Bug introduit plus tot dans cette meme version** (reutilisation des
   environnements, ci-dessus) : `importe "chemin.elg"` sans `comme alias`
   calculait l'alias par defaut dans un tampon de pile local, or

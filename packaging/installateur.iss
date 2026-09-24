@@ -29,6 +29,9 @@ OutputDir=..\dist_installateur
 OutputBaseFilename=EasyLanguage-installateur
 SetupIconFile=icone.ico
 UninstallDisplayIcon={app}\{#MyAppExeEditeur}
+; Page dediee affichee avant l'installation (auteur, societe, depot) :
+; voir packaging/a_propos_installateur.txt.
+InfoBeforeFile=a_propos_installateur.txt
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
