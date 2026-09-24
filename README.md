@@ -265,14 +265,43 @@ Ces fonctions natives sont aussi appelables directement sans import
 
 ## Performance
 
-Comparaison sur `fib(30)` recursif (interpreteur precedent en Python vs
-celui-ci en C) : **~30x plus rapide** en temps reel (2min26s -> 4.9s),
+**Face a notre propre tout premier prototype** (le tres original
+interpreteur ecrit en Python, avant la reecriture complete en C) : sur
+`fib(30)` recursif, **~30x plus rapide** en temps reel (2min26s -> 4.9s),
 jusqu'a ~38x en temps CPU pur. Le gain vient surtout de la compilation
 native (pas d'interpretation bytecode, pas de typage dynamique par objet
 Python) ; les quelques routines en assembleur inline sur l'arithmetique
 entiere (`+ - * -unaire`) ne font que documenter une integration ASM
 reelle sur le chemin le plus emprunte, un `-O2` C fait deja aussi bien
 sur des operations aussi simples.
+
+**Face a du vrai CPython** (3.13), sur le meme `fib(30)` : CPython reste
+plus rapide sur ce test precis (~0.7s pour Easy Language contre ~0.09s
+pour CPython, sur cette machine de developpement). Sur une boucle simple
+sans appel de fonction (20 millions d'iterations), l'ecart est plus
+faible (~1.8s contre ~1.4s). La raison : Easy Language est un
+interpreteur "tree-walking" (il evalue directement l'arbre syntaxique a
+chaque execution) alors que CPython compile en bytecode et beneficie de
+plusieurs decennies d'optimisation de sa boucle d'evaluation ; de plus,
+chaque acces a une variable parcourt la chaine des portees parentes avec
+une comparaison de chaines, ce qui coute cher sur du code recursif avec
+beaucoup d'appels. La v1.0.6 a supprime l'essentiel du cout de gestion
+memoire par appel de fonction (voir plus bas), mais ce cout de recherche
+de variable reste la limite actuelle face a CPython sur ce genre de
+charge. Honnetement : plus rapide que notre propre passe, pas encore plus
+rapide que du vrai Python sur tous les cas.
+
+**v1.0.6 : reutilisation des environnements.** Chaque appel de fonction
+ou entree de bloc (`si`, boucle) allouait et liberait un nouvel
+environnement (jusqu'a 4 `malloc`/`free` par appel), un cout qui dominait
+le temps d'execution sur du code recursif (visible en temps systeme :
+plus de la moitie du temps total sur `fib(30)`). Les environnements sont
+maintenant recycles via une pile de reutilisation au lieu d'etre
+liberes/realloues a chaque fois, et les noms de variables ne sont plus
+dupliques (ils vivent deja aussi longtemps que le programme, dans
+l'arbre syntaxique). Resultat : temps systeme quasi nul, et ~35% plus
+rapide au total sur `fib(30)`, sans changement de comportement (158
+tests toujours au vert).
 
 ## Distribution sous Windows
 

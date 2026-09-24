@@ -412,7 +412,7 @@
 
 <div class="colonne">
   <div class="stats">
-    <div class="stat"><span class="valeur">~30x</span><span class="label">plus rapide qu'un equivalent Python</span></div>
+    <div class="stat"><span class="valeur">~30x</span><span class="label">plus rapide que notre prototype Python d'origine</span></div>
     <div class="stat"><span class="valeur">100%</span><span class="label">C et assembleur, zero dependance</span></div>
     <div class="stat"><span class="valeur">3</span><span class="label">outils : interpreteur, debogueur, editeur</span></div>
     <div class="stat"><span class="valeur">0</span><span class="label">donnee collectee, tout fonctionne hors ligne</span></div>
@@ -446,8 +446,8 @@
       <div class="icone">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
       </div>
-      <strong>Environ 30 fois plus rapide qu'un equivalent Python</strong>
-      <p>Interpreteur ecrit en C, avec des routines en assembleur x86-64 inline sur l'arithmetique entiere.</p>
+      <strong>Environ 30 fois plus rapide que notre prototype Python</strong>
+      <p>Interpreteur ecrit en C, avec des routines en assembleur x86-64 inline sur l'arithmetique entiere. Comparaison detaillee (y compris face a du vrai CPython) dans le <a href="https://github.com/abiyeenzo/easy-language#performance">README</a>.</p>
     </div>
     <div class="fonctionnalite">
       <div class="icone">
@@ -616,7 +616,7 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
         <span class="version-numero">v1.0.6</span>
         <span class="version-date">24 septembre 2026</span>
       </div>
-      <p>Modules standard <code>texte</code> (manipulation de chaines) et <code>temps</code> (date et heure). Editeur graphique : barre d'outils, barre d'etat (ligne/colonne, etat d'execution), recherche de texte (Ctrl+F). 22 nouveaux tests, 158 au total.</p>
+      <p>Modules standard <code>texte</code> (manipulation de chaines) et <code>temps</code> (date et heure). Editeur graphique : barre d'outils, barre d'etat (ligne/colonne, etat d'execution), recherche de texte (Ctrl+F). Reutilisation des environnements memoire (moins de malloc/free, ~35% plus rapide sur du code recursif). 22 nouveaux tests, 158 au total.</p>
     </div>
     <div class="version">
       <div class="version-entete">
@@ -658,7 +658,7 @@ ajoute(fruits, <span class="str">"kiwi"</span>)
         <span class="version-numero">v1.0.0</span>
         <span class="version-date">22 septembre 2026</span>
       </div>
-      <p>Premiere version publique : interpreteur, editeur graphique et debogueur reecrits en C pur (~30x plus rapide qu'une version Python equivalente), suite de 81 tests, executables Windows individuels.</p>
+      <p>Premiere version publique : interpreteur, editeur graphique et debogueur reecrits en C pur (~30x plus rapide que le prototype Python d'origine), suite de 81 tests, executables Windows individuels.</p>
     </div>
   </div>
 </section>

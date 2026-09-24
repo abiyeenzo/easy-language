@@ -20,6 +20,21 @@ Toutes les versions notables du projet sont documentees ici.
   (Ctrl+F, boite de dialogue standard Windows).
 - 22 nouveaux tests (`c/tests/test_texte_temps.c`) : 158 au total.
 
+### Ameliore
+- Reutilisation des `Environnement` (bloc/boucle/appel de fonction) via
+  une pile de recyclage au lieu d'un `malloc`/`free` a chaque fois, et
+  arret de la duplication des noms de variables (ils vivent deja aussi
+  longtemps que le programme, dans l'arbre syntaxique). Sur `fib(30)`
+  recursif : temps systeme (malloc/free) quasi supprime, ~35% plus
+  rapide au total. Comportement inchange (158 tests toujours au vert).
+
+### Corrige
+- La section Performance du README comparait uniquement a notre tout
+  premier prototype (ecrit en Python), ce qui laissait croire a une
+  victoire generale contre Python. Chiffres ajoutes face a du vrai
+  CPython 3.13 : plus lent sur `fib(30)` recursif, proche sur une boucle
+  simple.
+
 ## [1.0.5] - 2026-09-24
 
 ### Ajoute
