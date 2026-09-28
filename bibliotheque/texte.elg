@@ -1,0 +1,38 @@
+# Bibliotheque de manipulation de texte.
+# importe "bibliotheque/texte.elg" comme texte ; texte.majuscules("abc").
+
+fonction decouper(source separateur):
+    retourne decouper(source separateur)
+
+fonction joindre(liste separateur):
+    retourne joindre(liste separateur)
+
+fonction remplacer(source ancien nouveau):
+    retourne remplacer(source ancien nouveau)
+
+fonction majuscules(source):
+    retourne majuscules(source)
+
+fonction minuscules(source):
+    retourne minuscules(source)
+
+fonction rogner(source):
+    retourne rogner(source)
+
+fonction commence_par(source prefixe):
+    retourne commence_par(source prefixe)
+
+fonction finit_par(source suffixe):
+    retourne finit_par(source suffixe)
+
+fonction sous_texte(source debut fin):
+    retourne sous_texte(source debut fin)
+
+fonction inverse(source):
+    retourne inverse(source)
+
+fonction position(source recherche):
+    retourne position(source recherche)
+
+fonction contient_texte(source recherche):
+    retourne contient_texte(source recherche)

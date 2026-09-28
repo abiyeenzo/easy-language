@@ -1,0 +1,96 @@
+name: Build Windows (C, cross-compilation)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer mingw-w64 (cross-compilation Windows depuis Linux)
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Compiler l'interpreteur natif (verification rapide)
+        run: cd c && make linux
+
+      - name: Lancer la suite de tests
+        run: cd c && make tests
+
+      - name: Verifier les exemples (sortie non vide, code de sortie 0)
+        run: |
+          cd c
+          for f in ../exemples/*.elg; do
+            echo "--- $f ---"
+            printf "Alice\n25\n" | ./easylang "$f"
+          done
+
+      - name: Cross-compiler pour Windows (interpreteur + debogueur + editeur)
+        run: cd c && make windows
+
+      - name: Preparer le paquet de distribution
+        run: |
+          mkdir -p dist_windows
+          cp c/easylang.exe c/easy_debogueur.exe c/easy_editeur.exe dist_windows/
+          cp packaging/icone.ico packaging/associer_fichiers.ps1 packaging/associer_fichiers.bat dist_windows/
+          cp -r exemples dist_windows/
+          cp -r bibliotheque dist_windows/
+          cp README.md GUIDE_UTILISATEUR.md CHANGELOG.md dist_windows/
+          cd dist_windows && zip -r ../EasyLanguage-windows.zip .
+
+      - name: Publier le paquet comme artefact de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-language-windows
+          path: |
+            EasyLanguage-windows.zip
+            c/easylang.exe
+            c/easy_debogueur.exe
+            c/easy_editeur.exe
+
+      - name: Creer la release GitHub (uniquement sur un tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            EasyLanguage-windows.zip
+            c/easylang.exe
+            c/easy_debogueur.exe
+            c/easy_editeur.exe
+
+  installateur:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recuperer les .exe compiles (job precedent)
+        uses: actions/download-artifact@v4
+        with:
+          name: easy-language-windows
+          path: .
+
+      - name: Compiler l'installateur avec Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: packaging/installateur.iss
+
+      - name: Publier l'installateur comme artefact de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-language-installateur
+          path: dist_installateur/EasyLanguage-installateur.exe
+
+      - name: Ajouter l'installateur a la release GitHub (uniquement sur un tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist_installateur/EasyLanguage-installateur.exe

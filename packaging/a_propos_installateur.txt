@@ -1,0 +1,10 @@
+Easy Language
+
+Un langage de programmation interprete, avec des mots-cles en francais.
+Coeur ecrit en C pur, editeur graphique et debogueur inclus, aucune
+dependance a installer.
+
+Concu et developpe par Abiye Enzo.
+AE Corporation.
+
+https://github.com/abiyeenzo/easy-language

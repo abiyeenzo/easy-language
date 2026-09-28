@@ -1,0 +1,13 @@
+# fonction recursive et boucle pour/jusqua avec pas
+
+fonction fibonacci(n):
+    si n <= 1 alors:
+        retourne n
+    retourne fibonacci(n - 1) + fibonacci(n - 2)
+
+pour i de 0 jusqua 10 alors:
+    affiche "fibonacci de" i "=" fibonacci(i)
+
+affiche "--- compte a rebours ---"
+pour i de 10 jusqua 0 pas -2 alors:
+    affiche i

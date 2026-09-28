@@ -1,0 +1,33 @@
+#include "ressources.h"
+#include <winver.h>
+
+IDI_ICONE ICON "../packaging/icone.ico"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 1,0,1,0
+PRODUCTVERSION 1,0,1,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040c04b0"
+        BEGIN
+            VALUE "CompanyName", "AE Corporation"
+            VALUE "FileDescription", "Easy Language - Editeur"
+            VALUE "FileVersion", "1.0.1.0"
+            VALUE "InternalName", "easy_editeur"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Abiye Enzo. Tous droits reserves."
+            VALUE "OriginalFilename", "easy_editeur.exe"
+            VALUE "ProductName", "Easy Language"
+            VALUE "ProductVersion", "1.0.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x040c, 1200
+    END
+END

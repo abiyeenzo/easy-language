@@ -1,0 +1,54 @@
+# Bibliotheque mathematique.
+# Enveloppe autour des fonctions natives (implementees en C) pour un acces
+# namespace : importe "bibliotheque/math.elg" comme math ; math.racine(16).
+# Les appels sans prefixe (ex: retourne racine(x)) resolvent toujours vers
+# le natif global, jamais vers cette fonction elle-meme : un appel qualifie
+# (module.nom) et un appel simple (nom) ne partagent pas la meme recherche.
+
+soit PI = 3.14159265358979323846
+soit E = 2.71828182845904523536
+
+fonction racine(x):
+    retourne racine(x)
+
+fonction puissance(x y):
+    retourne puissance(x y)
+
+fonction sin(x):
+    retourne sin(x)
+
+fonction cos(x):
+    retourne cos(x)
+
+fonction tan(x):
+    retourne tan(x)
+
+fonction abs(x):
+    retourne abs(x)
+
+fonction plancher(x):
+    retourne plancher(x)
+
+fonction plafond(x):
+    retourne plafond(x)
+
+fonction arrondi(x):
+    retourne arrondi(x)
+
+fonction log(x):
+    retourne log(x)
+
+fonction exp(x):
+    retourne exp(x)
+
+fonction alea():
+    retourne alea()
+
+fonction alea_entier(a b):
+    retourne alea_entier(a b)
+
+fonction min(a b):
+    retourne min(a b)
+
+fonction max(a b):
+    retourne max(a b)

@@ -1,0 +1,60 @@
+CC = gcc
+CFLAGS = -O2 -Wall -Wextra -std=gnu11
+LDFLAGS = -lm
+
+SRC_COMMUNS = lexer.c analyseur.c valeur.c environnement.c interpreteur.c util.c \
+              natifs_math.c natifs_os.c natifs_reseau.c natifs_gui.c \
+              natifs_texte.c natifs_temps.c bibliotheque_index.c
+
+WINCC = x86_64-w64-mingw32-gcc
+WINDRES = x86_64-w64-mingw32-windres
+
+# natifs_reseau.c (Winsock) et natifs_gui.c (MessageBoxW) ont besoin de ces
+# bibliotheques systeme uniquement sous Windows ; rien de supplementaire
+# n'est requis sous Linux (sockets POSIX et repli console dans la libc).
+WINLIBS = -lws2_32 -luser32
+
+.PHONY: all clean windows linux tests
+
+all: linux
+
+linux: easylang easy_debogueur
+
+easylang: main.c $(SRC_COMMUNS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+easy_debogueur: debogueur_main.c debogueur.c $(SRC_COMMUNS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+# L'editeur utilise l'API Win32 directement: uniquement compilable pour Windows.
+# Les trois executables embarquent chacun le logo (packaging/icone.ico) et des
+# metadonnees d'auteur (societe, copyright) via leur propre ressource .rc,
+# visibles dans l'Explorateur (icone) et l'onglet Details des proprietes du
+# fichier (auteur/copyright).
+windows: easylang.exe easy_debogueur.exe easy_editeur.exe
+
+ressources_interpreteur.o: ressources_interpreteur.rc ressources.h ../packaging/icone.ico
+	$(WINDRES) -o $@ ressources_interpreteur.rc
+
+ressources_debogueur.o: ressources_debogueur.rc ressources.h ../packaging/icone.ico
+	$(WINDRES) -o $@ ressources_debogueur.rc
+
+ressources_editeur.o: ressources_editeur.rc ressources.h ../packaging/icone.ico
+	$(WINDRES) -o $@ ressources_editeur.rc
+
+easylang.exe: main.c $(SRC_COMMUNS) ressources_interpreteur.o
+	$(WINCC) $(CFLAGS) -o $@ main.c $(SRC_COMMUNS) ressources_interpreteur.o $(LDFLAGS) $(WINLIBS)
+
+easy_debogueur.exe: debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o
+	$(WINCC) $(CFLAGS) -o $@ debogueur_main.c debogueur.c $(SRC_COMMUNS) ressources_debogueur.o $(LDFLAGS) $(WINLIBS)
+
+easy_editeur.exe: editeur.c ressources_editeur.o
+	$(WINCC) $(CFLAGS) -municode -mwindows -o $@ editeur.c ressources_editeur.o -lcomctl32 -lcomdlg32 -lgdi32 -luser32 -lkernel32 -lwinhttp -lshell32 -ladvapi32
+
+tests: easylang easy_debogueur
+	$(CC) $(CFLAGS) -o tests/executer_tests tests/test_interpreteur.c tests/test_debogueur.c tests/test_natifs.c tests/test_texte_temps.c tests/test_import_systeme.c tests/aide.c
+	cd tests && ./executer_tests
+
+clean:
+	rm -f easylang easylang.exe easy_debogueur easy_debogueur.exe easy_editeur.exe *.o
+	rm -f tests/executer_tests

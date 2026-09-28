@@ -1,0 +1,29 @@
+# Bibliotheque de date et heure.
+# importe "bibliotheque/temps.elg" comme temps ; temps.formater(temps.maintenant() "%Y-%m-%d").
+
+fonction maintenant():
+    retourne maintenant()
+
+fonction annee(horodatage):
+    retourne annee(horodatage)
+
+fonction mois(horodatage):
+    retourne mois(horodatage)
+
+fonction jour(horodatage):
+    retourne jour(horodatage)
+
+fonction heure(horodatage):
+    retourne heure(horodatage)
+
+fonction minute(horodatage):
+    retourne minute(horodatage)
+
+fonction seconde(horodatage):
+    retourne seconde(horodatage)
+
+fonction jour_semaine(horodatage):
+    retourne jour_semaine(horodatage)
+
+fonction formater(horodatage motif):
+    retourne formater(horodatage motif)

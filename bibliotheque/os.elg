@@ -1,0 +1,29 @@
+# Bibliotheque systeme (fichiers, environnement), equivalent reduit du
+# module 'os' de Python. importe "bibliotheque/os.elg" comme os.
+
+fonction fichier_existe(chemin):
+    retourne fichier_existe(chemin)
+
+fonction lire_fichier(chemin):
+    retourne lire_fichier(chemin)
+
+fonction ecrire_fichier(chemin contenu):
+    retourne ecrire_fichier(chemin contenu)
+
+fonction ajouter_fichier(chemin contenu):
+    retourne ajouter_fichier(chemin contenu)
+
+fonction supprimer_fichier(chemin):
+    retourne supprimer_fichier(chemin)
+
+fonction repertoire_courant():
+    retourne repertoire_courant()
+
+fonction variable_environnement(nom):
+    retourne variable_environnement(nom)
+
+fonction horodatage():
+    retourne horodatage()
+
+fonction dormir(secondes):
+    retourne dormir(secondes)
